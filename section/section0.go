@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/mmp/mgrib2/internal"
+	"github.com/mmp/mgrib2/tables"
 )
 
 // Section0 represents the GRIB2 Indicator Section (Section 0).
@@ -92,28 +93,8 @@ func (s *Section0) DisciplineName() string {
 }
 
 // GetDisciplineName returns the human-readable name for a discipline code.
-// This is based on WMO Table 0.0.
+// This function delegates to the tables package.
+// Prefer using tables.GetDisciplineName() directly in new code.
 func GetDisciplineName(discipline uint8) string {
-	// WMO Code Table 0.0: Discipline of processed data
-	switch discipline {
-	case 0:
-		return "Meteorological products"
-	case 1:
-		return "Hydrological products"
-	case 2:
-		return "Land surface products"
-	case 3:
-		return "Space products"
-	case 4:
-		return "Space weather products"
-	case 10:
-		return "Oceanographic products"
-	case 20:
-		return "Health and socioeconomic impacts"
-	default:
-		if discipline >= 192 {
-			return fmt.Sprintf("Reserved for local use (%d)", discipline)
-		}
-		return fmt.Sprintf("Unknown discipline (%d)", discipline)
-	}
+	return tables.GetDisciplineName(int(discipline))
 }

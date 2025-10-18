@@ -255,15 +255,15 @@ func TestGetDisciplineName(t *testing.T) {
 		code uint8
 		want string
 	}{
-		{0, "Meteorological products"},
-		{1, "Hydrological products"},
-		{2, "Land surface products"},
-		{3, "Space products"},
-		{4, "Space weather products"},
-		{10, "Oceanographic products"},
-		{20, "Health and socioeconomic impacts"},
-		{192, "Reserved for local use (192)"},
-		{255, "Reserved for local use (255)"},
+		{0, "Meteorological"},
+		{1, "Hydrological"},
+		{2, "Land Surface"},
+		{3, "Space"},
+		{4, "Space Weather"},
+		{10, "Oceanographic"},
+		{20, "Health"},
+		{192, "Local"},
+		{255, "Missing"},
 		{99, "Unknown discipline (99)"},
 	}
 
@@ -285,7 +285,7 @@ func TestSection0DisciplineName(t *testing.T) {
 	}
 
 	got := sec0.DisciplineName()
-	want := "Meteorological products"
+	want := "Meteorological"
 
 	if got != want {
 		t.Errorf("DisciplineName() = %q, want %q", got, want)

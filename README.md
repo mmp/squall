@@ -4,7 +4,7 @@ A clean, idiomatic Go library for reading GRIB2 (GRIdded Binary 2nd edition) met
 
 ## Status
 
-🚧 **In Development** - Phase 1 complete (Core Infrastructure), ready to begin Phase 2 (Code Tables)
+🚧 **In Development** - Phases 1-2 complete (Core Infrastructure + Code Tables), ready to begin Phase 3 (Section Parsers)
 
 ## Goals
 
@@ -113,10 +113,16 @@ gribs, err := mgrib2.ReadWithContext(ctx, data)
 - [x] Error types (ParseError, UnsupportedTemplateError, InvalidFormatError)
 - [x] Comprehensive tests (79.4% coverage, 55 tests passing)
 
-### Phase 2: Code Tables (4-5 days)
-- [ ] Table infrastructure
-- [ ] Critical WMO tables
-- [ ] Code generation tool
+### Phase 2: Code Tables ✅ **COMPLETE**
+- [x] Table infrastructure (SimpleTable, RangeTable, DisciplineSpecificTable)
+- [x] Critical WMO tables (8 tables, 200+ entries)
+  - Table 0.0: Discipline
+  - Table C-1: Originating Centers
+  - Tables 1.2-1.4: Time significance, production status, data type
+  - Table 4.1: Parameter categories
+  - Table 4.2: Parameter numbers (meteorological subset)
+  - Table 4.5: Fixed surface types (levels)
+- [x] Comprehensive tests (76.7% coverage, 66 total tests passing)
 
 ### Phase 3: Section Parsers 1-4 (5-6 days)
 - [ ] Identification section
