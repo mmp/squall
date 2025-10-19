@@ -113,3 +113,123 @@ func (g *LatLonGrid) ScanningFlags() (iNegative, jPositive, consecutive bool) {
 	consecutive = (g.ScanningMode & 0x20) == 0 // Bit 2 (0 = consecutive)
 	return
 }
+
+// Latitudes generates an array of latitude values for all grid points.
+//
+// The latitudes are returned in grid scan order (respecting the scanning mode).
+// For the most common scanning mode (0x00: +i west-to-east, -j north-to-south),
+// the latitudes vary by row.
+//
+// Returns a slice of latitude values in degrees, one per grid point.
+func (g *LatLonGrid) Latitudes() []float64 {
+	_, jPositive, consecutive := g.ScanningFlags()
+
+	numPoints := g.NumPoints()
+	lats := make([]float64, numPoints)
+
+	// Calculate latitude increment in degrees
+	dj := float64(g.Dj) / 1000.0
+	if !jPositive {
+		dj = -dj // Scanning north to south
+	}
+
+	// Starting latitude
+	lat1 := float64(g.La1) / 1000.0
+
+	if consecutive {
+		// Consecutive points in i direction (most common)
+		// Latitude varies by j (row)
+		for j := uint32(0); j < g.Nj; j++ {
+			lat := lat1 + float64(j)*dj
+			for i := uint32(0); i < g.Ni; i++ {
+				idx := j*g.Ni + i
+				lats[idx] = lat
+			}
+		}
+	} else {
+		// Consecutive points in j direction
+		// Latitude varies within each column
+		for i := uint32(0); i < g.Ni; i++ {
+			for j := uint32(0); j < g.Nj; j++ {
+				lat := lat1 + float64(j)*dj
+				idx := i*g.Nj + j
+				lats[idx] = lat
+			}
+		}
+	}
+
+	return lats
+}
+
+// Longitudes generates an array of longitude values for all grid points.
+//
+// The longitudes are returned in grid scan order (respecting the scanning mode).
+// For the most common scanning mode (0x00: +i west-to-east, -j north-to-south),
+// the longitudes vary by column.
+//
+// Longitudes are normalized to the range [0, 360) degrees.
+//
+// Returns a slice of longitude values in degrees, one per grid point.
+func (g *LatLonGrid) Longitudes() []float64 {
+	iNegative, _, consecutive := g.ScanningFlags()
+
+	numPoints := g.NumPoints()
+	lons := make([]float64, numPoints)
+
+	// Calculate longitude increment in degrees
+	di := float64(g.Di) / 1000.0
+	if iNegative {
+		di = -di // Scanning east to west
+	}
+
+	// Starting longitude
+	lon1 := float64(g.Lo1) / 1000.0
+
+	if consecutive {
+		// Consecutive points in i direction (most common)
+		// Longitude varies by i (column)
+		for j := uint32(0); j < g.Nj; j++ {
+			for i := uint32(0); i < g.Ni; i++ {
+				lon := lon1 + float64(i)*di
+				// Normalize to [0, 360)
+				for lon < 0 {
+					lon += 360.0
+				}
+				for lon >= 360.0 {
+					lon -= 360.0
+				}
+				idx := j*g.Ni + i
+				lons[idx] = lon
+			}
+		}
+	} else {
+		// Consecutive points in j direction
+		// Longitude varies between columns
+		for i := uint32(0); i < g.Ni; i++ {
+			lon := lon1 + float64(i)*di
+			// Normalize to [0, 360)
+			for lon < 0 {
+				lon += 360.0
+			}
+			for lon >= 360.0 {
+				lon -= 360.0
+			}
+			for j := uint32(0); j < g.Nj; j++ {
+				idx := i*g.Nj + j
+				lons[idx] = lon
+			}
+		}
+	}
+
+	return lons
+}
+
+// Coordinates generates lat/lon coordinate pairs for all grid points.
+//
+// Returns two slices (latitudes and longitudes) in grid scan order.
+// The slices have length equal to NumPoints().
+//
+// This is a convenience method that calls Latitudes() and Longitudes().
+func (g *LatLonGrid) Coordinates() (latitudes, longitudes []float64) {
+	return g.Latitudes(), g.Longitudes()
+}
