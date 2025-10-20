@@ -157,6 +157,12 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 		return nil, fmt.Errorf("no packed data to decode")
 	}
 
+	// DEBUG: Check if template looks corrupted
+	if t.NumberOfGroups > 500000 {
+		return nil, fmt.Errorf("template has suspiciously large NumberOfGroups=%d (SpatialDiffOrder=%d, NumOctetsExtra=%d, NumberOfDataValues=%d)",
+			t.NumberOfGroups, t.SpatialDiffOrder, t.NumOctetsExtraDescriptors, t.NumberOfDataValues)
+	}
+
 	bitReader := internal.NewBitReader(packedData)
 
 	// Calculate number of values including spatial difference references
@@ -171,6 +177,7 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 	// - Then comes min_val (used as offset in spatial differencing)
 	// These values are stored as bytes (octets), not bit-packed like regular data values.
 	// The number of bytes per value is given by NumOctetsExtraDescriptors.
+	// IMPORTANT: The bitReader should already be byte-aligned at the start of Section 7 data.
 	var firstVals []int32
 	var minVal int32
 	if t.SpatialDiffOrder == 1 || t.SpatialDiffOrder == 2 {
@@ -180,6 +187,9 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 			return nil, fmt.Errorf("spatial differencing order %d requires NumOctetsExtraDescriptors > 0, got 0",
 				t.SpatialDiffOrder)
 		}
+
+		// Ensure byte alignment before reading extra descriptors
+		bitReader.Align()
 
 		numFirstVals := int(t.SpatialDiffOrder)
 		firstVals = make([]int32, numFirstVals)
@@ -275,7 +285,9 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 			} else {
 				val, err := bitReader.ReadBits(int(groupWidth))
 				if err != nil {
-					return nil, fmt.Errorf("failed to read value in group %d: %w", i, err)
+					// DEBUG: Show more context
+					return nil, fmt.Errorf("failed to read value in group %d (of %d groups, groupWidth=%d, groupLength=%d, idx=%d, numUnpackedVals=%d, ndata=%d, NumOctetsExtra=%d, SpatialDiffOrder=%d): %w",
+						i, t.NumberOfGroups, groupWidth, groupLength, idx, numUnpackedVals, ndata, t.NumOctetsExtraDescriptors, t.SpatialDiffOrder, err)
 				}
 				unpackedVals[idx] = groupMin + int32(val)
 			}
