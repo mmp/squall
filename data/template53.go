@@ -165,21 +165,41 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 		ndata = uint32(len(bitmap))
 	}
 
-	// Read spatial difference reference values
-	// For order 1: 1 reference value
-	// For order 2: 2 reference values
+	// Read spatial difference reference values and min_val
+	// For Template 5.3 with spatial differencing:
+	// - First come the reference values (1 or 2 depending on order)
+	// - Then comes min_val (used as offset in spatial differencing)
+	// These values are stored as bytes (octets), not bit-packed like regular data values.
+	// The number of bytes per value is given by NumOctetsExtraDescriptors.
 	var firstVals []int32
+	var minVal int32
 	if t.SpatialDiffOrder == 1 || t.SpatialDiffOrder == 2 {
+		if t.NumOctetsExtraDescriptors == 0 {
+			// No extra descriptors, so no first values or min_val in data section
+			// This shouldn't happen for proper spatial differencing, but handle gracefully
+			return nil, fmt.Errorf("spatial differencing order %d requires NumOctetsExtraDescriptors > 0, got 0",
+				t.SpatialDiffOrder)
+		}
+
 		numFirstVals := int(t.SpatialDiffOrder)
 		firstVals = make([]int32, numFirstVals)
+		numOctets := int(t.NumOctetsExtraDescriptors)
 
+		// Read first reference values (stored as bytes, not bit-packed)
 		for i := 0; i < numFirstVals; i++ {
-			val, err := bitReader.ReadBits(int(t.NumBitsPerValue))
+			val, err := bitReader.ReadBytes(numOctets)
 			if err != nil {
 				return nil, fmt.Errorf("failed to read first value %d: %w", i, err)
 			}
 			firstVals[i] = int32(val)
 		}
+
+		// Read min_val (minimum value offset, stored as signed bytes)
+		val, err := bitReader.ReadSignedBytes(numOctets)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read min_val: %w", err)
+		}
+		minVal = int32(val)
 	}
 
 	// Read minimum values for each group (group reference values)
@@ -271,9 +291,9 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 	// Reverse spatial differencing
 	var finalVals []int32
 	if t.SpatialDiffOrder == 1 {
-		finalVals = t.reverseSpatialDifferencing1(allVals)
+		finalVals = t.reverseSpatialDifferencing1(allVals, minVal)
 	} else if t.SpatialDiffOrder == 2 {
-		finalVals = t.reverseSpatialDifferencing2(allVals)
+		finalVals = t.reverseSpatialDifferencing2(allVals, minVal)
 	} else {
 		finalVals = allVals
 	}
@@ -288,17 +308,20 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 // reverseSpatialDifferencing1 reverses first-order spatial differencing.
 //
 // First-order differencing: Y[n] = X[n] - X[n-1]
-// Reversal: X[n] = X[n-1] + Y[n]
-func (t *Template53) reverseSpatialDifferencing1(diffVals []int32) []int32 {
+// Reversal: X[n] = X[n-1] + Y[n] + min_val
+//
+// The min_val offset is added at each step per the GRIB2 specification
+// and reference implementations (wgrib2, go-grib2).
+func (t *Template53) reverseSpatialDifferencing1(diffVals []int32, minVal int32) []int32 {
 	if len(diffVals) == 0 {
 		return diffVals
 	}
 
 	vals := make([]int32, len(diffVals))
-	vals[0] = diffVals[0] // First value is unchanged
+	vals[0] = diffVals[0] // First value is the reference, unchanged
 
 	for i := 1; i < len(diffVals); i++ {
-		vals[i] = vals[i-1] + diffVals[i]
+		vals[i] = vals[i-1] + diffVals[i] + minVal
 	}
 
 	return vals
@@ -308,18 +331,21 @@ func (t *Template53) reverseSpatialDifferencing1(diffVals []int32) []int32 {
 //
 // Second-order differencing: Z[n] = (X[n] - X[n-1]) - (X[n-1] - X[n-2])
 //                                  = X[n] - 2*X[n-1] + X[n-2]
-// Reversal: X[n] = Z[n] + 2*X[n-1] - X[n-2]
-func (t *Template53) reverseSpatialDifferencing2(diffVals []int32) []int32 {
+// Reversal: X[n] = Z[n] + 2*X[n-1] - X[n-2] + min_val
+//
+// The min_val offset is added at each step per the GRIB2 specification
+// and reference implementations (wgrib2, go-grib2).
+func (t *Template53) reverseSpatialDifferencing2(diffVals []int32, minVal int32) []int32 {
 	if len(diffVals) < 2 {
 		return diffVals
 	}
 
 	vals := make([]int32, len(diffVals))
-	vals[0] = diffVals[0] // First value is unchanged
-	vals[1] = diffVals[1] // Second value is unchanged
+	vals[0] = diffVals[0] // First value is the reference, unchanged
+	vals[1] = diffVals[1] // Second value is the reference, unchanged
 
 	for i := 2; i < len(diffVals); i++ {
-		vals[i] = diffVals[i] + 2*vals[i-1] - vals[i-2]
+		vals[i] = diffVals[i] + 2*vals[i-1] - vals[i-2] + minVal
 	}
 
 	return vals

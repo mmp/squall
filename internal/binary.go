@@ -278,3 +278,55 @@ func (br *BitReader) Align() {
 		br.offset += 8 - remainder
 	}
 }
+
+// ReadBytes reads n bytes (octets) as an unsigned integer.
+// The reader must be byte-aligned when calling this method.
+// Returns the value as uint64 (big-endian).
+func (br *BitReader) ReadBytes(n int) (uint64, error) {
+	if n < 1 || n > 8 {
+		return 0, fmt.Errorf("ReadBytes n must be in range [1, 8], got %d", n)
+	}
+
+	// Ensure we're byte-aligned
+	if br.offset%8 != 0 {
+		return 0, fmt.Errorf("ReadBytes called on non-byte-aligned offset %d", br.offset)
+	}
+
+	if br.offset+n*8 > br.maxBits {
+		return 0, io.ErrUnexpectedEOF
+	}
+
+	byteIndex := br.offset / 8
+	var result uint64
+
+	for i := 0; i < n; i++ {
+		result = (result << 8) | uint64(br.data[byteIndex+i])
+	}
+
+	br.offset += n * 8
+	return result, nil
+}
+
+// ReadSignedBytes reads n bytes (octets) as a signed integer (two's complement).
+// The reader must be byte-aligned when calling this method.
+// Returns the value as int64 (big-endian).
+func (br *BitReader) ReadSignedBytes(n int) (int64, error) {
+	if n < 1 || n > 8 {
+		return 0, fmt.Errorf("ReadSignedBytes n must be in range [1, 8], got %d", n)
+	}
+
+	val, err := br.ReadBytes(n)
+	if err != nil {
+		return 0, err
+	}
+
+	// Check if sign bit is set (most significant bit of the first byte)
+	signBit := uint64(1) << (n*8 - 1)
+	if val&signBit != 0 {
+		// Negative number: extend sign bits
+		mask := ^uint64(0) << (n * 8)
+		val |= mask
+	}
+
+	return int64(val), nil
+}

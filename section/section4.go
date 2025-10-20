@@ -30,6 +30,7 @@ type Section4 struct {
 //
 // Currently supported templates:
 //   - 0: Analysis or forecast at a horizontal level or layer at a point in time
+//   - 8: Average, accumulation, extreme values or other statistically processed values
 //
 // Returns an error if:
 //   - The section is too short
@@ -73,6 +74,13 @@ func ParseSection4(data []byte) (*Section4, error) {
 		parsedProduct, err = product.ParseTemplate40(templateData)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse product template 4.0: %w", err)
+		}
+
+	case 8:
+		// Template 4.8: Average, accumulation, extreme values or statistically processed values
+		parsedProduct, err = product.ParseTemplate48(templateData)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse product template 4.8: %w", err)
 		}
 
 	default:
