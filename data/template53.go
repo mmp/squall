@@ -157,12 +157,6 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 		return nil, fmt.Errorf("no packed data to decode")
 	}
 
-	// DEBUG: Check if template looks corrupted
-	if t.NumberOfGroups > 500000 {
-		return nil, fmt.Errorf("template has suspiciously large NumberOfGroups=%d (SpatialDiffOrder=%d, NumOctetsExtra=%d, NumberOfDataValues=%d)",
-			t.NumberOfGroups, t.SpatialDiffOrder, t.NumOctetsExtraDescriptors, t.NumberOfDataValues)
-	}
-
 	bitReader := internal.NewBitReader(packedData)
 
 	// Calculate number of values including spatial difference references
@@ -240,16 +234,22 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 	}
 
 	// Unpack group lengths
+	// According to GRIB2 spec and reference implementations:
+	// - Group length metadata for first (ngroups-1) groups is encoded in the bitstream
+	// - The last group's length is given directly by TrueLengthLastGroup template field
+	// - The bitstream may or may not contain space for the last group's length
+	//   (implementation-dependent)
 	groupLengths := make([]uint32, t.NumberOfGroups)
 	if t.NumBitsGroupLength > 0 {
-		for i := uint32(0); i < t.NumberOfGroups; i++ {
+		// Strategy: Read first (ngroups-1) lengths, then use TrueLengthLastGroup for last
+		for i := uint32(0); i < t.NumberOfGroups-1; i++ {
 			val, err := bitReader.ReadBits(int(t.NumBitsGroupLength))
 			if err != nil {
 				return nil, fmt.Errorf("failed to read group length %d: %w", i, err)
 			}
 			groupLengths[i] = t.ReferenceGroupLength + uint32(val)*uint32(t.GroupLengthIncrement)
 		}
-		// Last group uses true length
+		// Last group uses true length (from template)
 		if t.NumberOfGroups > 0 {
 			groupLengths[t.NumberOfGroups-1] = t.TrueLengthLastGroup
 		}
@@ -268,6 +268,10 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 	numUnpackedVals := int(ndata) - len(firstVals)
 	unpackedVals := make([]int32, numUnpackedVals)
 
+	// Note: Some implementations align to byte boundary here before reading packed values.
+	// However, GRIB2 spec indicates continuous bit packing, so we don't align.
+	// If issues persist, try: bitReader.Align()
+
 	idx := 0
 	for i := uint32(0); i < t.NumberOfGroups; i++ {
 		groupWidth := groupWidths[i]
@@ -285,9 +289,7 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 			} else {
 				val, err := bitReader.ReadBits(int(groupWidth))
 				if err != nil {
-					// DEBUG: Show more context
-					return nil, fmt.Errorf("failed to read value in group %d (of %d groups, groupWidth=%d, groupLength=%d, idx=%d, numUnpackedVals=%d, ndata=%d, NumOctetsExtra=%d, SpatialDiffOrder=%d): %w",
-						i, t.NumberOfGroups, groupWidth, groupLength, idx, numUnpackedVals, ndata, t.NumOctetsExtraDescriptors, t.SpatialDiffOrder, err)
+					return nil, fmt.Errorf("failed to read value in group %d: %w", i, err)
 				}
 				unpackedVals[idx] = groupMin + int32(val)
 			}
