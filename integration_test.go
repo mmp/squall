@@ -1,0 +1,126 @@
+package mgrib2_test
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/mmp/mgrib2/internal/testutil"
+)
+
+// TestIntegrationWithRealFiles tests mgrib2 against reference implementations
+// using real GRIB2 files.
+//
+// To run this test, place GRIB2 files in the testdata directory.
+// The test will be skipped if no files are found.
+func TestIntegrationWithRealFiles(t *testing.T) {
+	// Look for GRIB2 files in testdata directory
+	testdataDir := "testdata"
+	if _, err := os.Stat(testdataDir); os.IsNotExist(err) {
+		t.Skip("testdata directory not found - skipping integration tests")
+		return
+	}
+
+	// Find all .grib2 files
+	matches, err := filepath.Glob(filepath.Join(testdataDir, "*.grib2"))
+	if err != nil {
+		t.Fatalf("failed to search for GRIB2 files: %v", err)
+	}
+
+	// Also try .grb2 extension
+	matches2, err := filepath.Glob(filepath.Join(testdataDir, "*.grb2"))
+	if err != nil {
+		t.Fatalf("failed to search for .grb2 files: %v", err)
+	}
+	matches = append(matches, matches2...)
+
+	if len(matches) == 0 {
+		t.Skip("no GRIB2 files found in testdata directory - skipping integration tests")
+		return
+	}
+
+	t.Logf("Found %d GRIB2 files to test", len(matches))
+
+	// Test each file
+	for _, gribFile := range matches {
+		t.Run(filepath.Base(gribFile), func(t *testing.T) {
+			testGRIB2File(t, gribFile)
+		})
+	}
+}
+
+// testGRIB2File tests a single GRIB2 file against reference implementations.
+func testGRIB2File(t *testing.T, gribFile string) {
+	// Maximum ULP difference allowed (10 ULPs is very strict, 100 ULPs is reasonable)
+	maxULP := int64(100)
+
+	// Run comparison
+	result, err := testutil.CompareImplementations(gribFile, maxULP)
+	if err != nil {
+		t.Fatalf("comparison failed: %v", err)
+	}
+
+	// Log full results
+	t.Log(result.String())
+
+	// Check if test passed
+	if !result.Passed() {
+		t.Errorf("integration test failed for %s", gribFile)
+
+		// Print summary statistics
+		if len(result.Wgrib2Comparisons) > 0 {
+			printComparisonStats(t, "wgrib2", result.Wgrib2Comparisons)
+		}
+		if len(result.GoGrib2Comparisons) > 0 {
+			printComparisonStats(t, "go-grib2", result.GoGrib2Comparisons)
+		}
+	}
+}
+
+// printComparisonStats prints summary statistics for a set of comparisons.
+func printComparisonStats(t *testing.T, refName string, comparisons []*testutil.ComparisonResult) {
+	t.Logf("\n=== Statistics vs %s ===", refName)
+
+	var totalPoints int
+	var totalExact int
+	var maxULP int64
+	var sumMeanULP float64
+
+	for _, comp := range comparisons {
+		totalPoints += comp.TotalPoints
+		totalExact += comp.ExactMatches
+		if comp.MaxULPDiff > maxULP {
+			maxULP = comp.MaxULPDiff
+		}
+		sumMeanULP += comp.MeanULPDiff
+	}
+
+	if len(comparisons) > 0 {
+		avgMeanULP := sumMeanULP / float64(len(comparisons))
+		exactPct := 100.0 * float64(totalExact) / float64(totalPoints)
+
+		t.Logf("Total points: %d", totalPoints)
+		t.Logf("Exact matches: %d (%.1f%%)", totalExact, exactPct)
+		t.Logf("Max ULP diff: %d", maxULP)
+		t.Logf("Avg mean ULP: %.1f", avgMeanULP)
+	}
+}
+
+// Example test showing manual comparison
+func ExampleCompareImplementations() {
+	// Compare mgrib2 against reference implementations
+	result, err := testutil.CompareImplementations("testdata/sample.grib2", 100)
+	if err != nil {
+		panic(err)
+	}
+
+	// Print results
+	println(result.String())
+
+	// Check if test passed
+	if result.Passed() {
+		println("All comparisons passed!")
+	} else {
+		println("Some comparisons failed")
+	}
+}
