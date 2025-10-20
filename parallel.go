@@ -139,3 +139,28 @@ func ParseMessagesSequential(data []byte) ([]*Message, error) {
 
 	return messages, nil
 }
+
+// ParseMessagesSequentialSkipErrors parses messages sequentially, skipping any that fail.
+//
+// This is useful when a GRIB2 file contains messages with unsupported templates.
+// Successfully parsed messages are returned; errors are silently skipped.
+func ParseMessagesSequentialSkipErrors(data []byte) ([]*Message, error) {
+	boundaries, err := FindMessages(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find message boundaries: %w", err)
+	}
+
+	messages := make([]*Message, 0, len(boundaries))
+
+	for _, boundary := range boundaries {
+		msgData := data[boundary.Start : boundary.Start+int(boundary.Length)]
+		msg, err := ParseMessage(msgData)
+		if err != nil {
+			// Skip this message and continue
+			continue
+		}
+		messages = append(messages, msg)
+	}
+
+	return messages, nil
+}

@@ -94,14 +94,18 @@ func ReadWithOptions(data []byte, opts ...ReadOption) ([]*GRIB2, error) {
 	var err error
 
 	if config.sequential {
-		messages, err = ParseMessagesSequential(data)
+		if config.skipErrors {
+			messages, err = ParseMessagesSequentialSkipErrors(data)
+		} else {
+			messages, err = ParseMessagesSequential(data)
+		}
 	} else if config.ctx != nil {
 		messages, err = ParseMessagesWithContext(config.ctx, data, config.workers)
 	} else {
 		messages, err = ParseMessagesWithWorkers(data, config.workers)
 	}
 
-	if err != nil {
+	if err != nil && !config.skipErrors {
 		return nil, err
 	}
 
