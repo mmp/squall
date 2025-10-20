@@ -32,10 +32,10 @@ type Template40 struct {
 
 // ParseTemplate40 parses Product Definition Template 4.0.
 //
-// The template data should be at least 34 bytes for Template 4.0.
+// The template data should be 25 bytes for Template 4.0.
 func ParseTemplate40(data []byte) (*Template40, error) {
-	if len(data) < 34 {
-		return nil, fmt.Errorf("template 4.0 requires at least 34 bytes, got %d", len(data))
+	if len(data) < 25 {
+		return nil, fmt.Errorf("template 4.0 requires at least 25 bytes, got %d", len(data))
 	}
 
 	r := internal.NewReader(data)

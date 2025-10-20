@@ -29,10 +29,10 @@ type Template50 struct {
 
 // ParseTemplate50 parses Data Representation Template 5.0.
 //
-// The template data should be at least 11 bytes for Template 5.0.
+// The template data should be 10 bytes for Template 5.0.
 func ParseTemplate50(numDataValues uint32, data []byte) (*Template50, error) {
-	if len(data) < 11 {
-		return nil, fmt.Errorf("template 5.0 requires at least 11 bytes, got %d", len(data))
+	if len(data) < 10 {
+		return nil, fmt.Errorf("template 5.0 requires at least 10 bytes, got %d", len(data))
 	}
 
 	r := internal.NewReader(data)
