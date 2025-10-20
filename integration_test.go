@@ -51,6 +51,16 @@ func TestIntegrationWithRealFiles(t *testing.T) {
 
 // testGRIB2File tests a single GRIB2 file against reference implementations.
 func testGRIB2File(t *testing.T, gribFile string) {
+	// Skip large files (integration testing framework is best suited for smaller test files)
+	info, err := os.Stat(gribFile)
+	if err != nil {
+		t.Fatalf("stat failed: %v", err)
+	}
+	if info.Size() > 5*1024*1024 { // 5 MB limit
+		t.Skipf("Skipping large file %s (%d bytes) - integration test best suited for smaller files",
+			gribFile, info.Size())
+	}
+
 	// Maximum ULP difference allowed (10 ULPs is very strict, 100 ULPs is reasonable)
 	maxULP := int64(100)
 

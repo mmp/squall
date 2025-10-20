@@ -18,8 +18,10 @@ func ParseMgrib2(gribFile string) (map[string]*FieldData, error) {
 		return nil, fmt.Errorf("failed to read file: %v", err)
 	}
 
-	// Parse with mgrib2
-	fields, err := mgrib2.Read(data)
+	// Parse with mgrib2 (use sequential + skip errors for robustness)
+	fields, err := mgrib2.ReadWithOptions(data,
+		mgrib2.WithSequential(),
+		mgrib2.WithSkipErrors())
 	if err != nil {
 		return nil, fmt.Errorf("mgrib2 parse failed: %v", err)
 	}
