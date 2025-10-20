@@ -74,6 +74,13 @@ func ParseSection5(sectionData []byte) (*Section5, error) {
 			return nil, fmt.Errorf("failed to parse data representation template 5.0: %w", err)
 		}
 
+	case 3:
+		// Template 5.3: Complex packing with spatial differencing
+		parsedRepresentation, err = data.ParseTemplate53(numDataValues, templateData)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse data representation template 5.3: %w", err)
+		}
+
 	default:
 		return nil, fmt.Errorf("unsupported data representation template: %d", dataRepresentationTemplateNumber)
 	}

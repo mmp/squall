@@ -26,13 +26,18 @@ func TestParseHRRRCONUS(t *testing.T) {
 		t.Fatalf("Parse error: %v", err)
 	}
 
-	t.Logf("Parsed %d fields (Template 5.0 simple packing)", len(fields))
-	t.Logf("Note: ~664 fields skipped (use Template 5.3 complex packing, not yet implemented)")
+	t.Logf("Parsed %d fields", len(fields))
 
-	// Verify we parsed some fields successfully
-	if len(fields) < 10 {
-		t.Errorf("Expected at least 10 fields with simple packing, got %d", len(fields))
+	// Verify Template 5.3 support is working
+	// Without Template 5.3: 44 fields (only Template 5.0)
+	// With Template 5.3 (partial): 129+ fields
+	// Note: Full implementation would parse ~700 fields, but that requires
+	// additional work on spatial differencing with min_val offsets
+	if len(fields) < 100 {
+		t.Errorf("Expected at least 100 fields (Template 5.0 + some Template 5.3), got %d", len(fields))
 	}
+
+	t.Logf("Note: Template 5.3 implementation is functional but may need refinement for all edge cases")
 
 	if len(fields) > 0 {
 		f := fields[0]
