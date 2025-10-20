@@ -34,6 +34,7 @@ type Section3 struct {
 //
 // Currently supported templates:
 //   - 0: Latitude/Longitude (equidistant cylindrical)
+//   - 30: Lambert Conformal
 //
 // Returns an error if:
 //   - The section is too short
@@ -80,6 +81,13 @@ func ParseSection3(data []byte) (*Section3, error) {
 		parsedGrid, err = grid.ParseLatLonGrid(templateData)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse lat/lon grid: %w", err)
+		}
+
+	case 30:
+		// Template 3.30: Lambert Conformal
+		parsedGrid, err = grid.ParseLambertConformalGrid(data) // Pass full section data
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse Lambert Conformal grid: %w", err)
 		}
 
 	default:
