@@ -197,8 +197,9 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 			firstVals[i] = int32(val)
 		}
 
-		// Read min_val (minimum value offset, stored as signed bytes)
-		val, err := bitReader.ReadSignedBytes(numOctets)
+		// Read min_val (minimum value offset, stored as signed bytes using sign-magnitude encoding)
+		// GRIB2 uses sign-magnitude encoding for multi-byte signed integers
+		val, err := bitReader.ReadSignedBytesSignMagnitude(numOctets)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read min_val: %w", err)
 		}
@@ -328,9 +329,10 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 // First-order differencing: Y[n] = X[n] - X[n-1]
 // Reversal: X[n] = X[n-1] + Y[n] + min_val
 //
-// The min_val offset is added at each step per the GRIB2 specification
-// and reference implementations (wgrib2, go-grib2).
-// The firstVals array contains the initial undifferenced reference value(s).
+// Per GRIB2 spec and reference implementations (wgrib2, go-grib2):
+// - The first n values in the packed data are set to zero (placeholders)
+// - These are replaced in-place with the firstVals (extra descriptors)
+// - The differencing formula is applied starting from index n
 func (t *Template53) reverseSpatialDifferencing1(diffVals []int32, firstVals []int32, minVal int32) []int32 {
 	if len(diffVals) == 0 {
 		return diffVals
@@ -338,11 +340,15 @@ func (t *Template53) reverseSpatialDifferencing1(diffVals []int32, firstVals []i
 
 	vals := make([]int32, len(diffVals))
 
-	// First value is the reference from extra descriptors (not from packed data)
+	// Replace first value with extra descriptor (reference value)
 	vals[0] = firstVals[0]
 
+	// Apply first-order differencing reversal starting from index 1
+	last := vals[0]
+
 	for i := 1; i < len(diffVals); i++ {
-		vals[i] = vals[i-1] + diffVals[i] + minVal
+		vals[i] = diffVals[i] + last + minVal
+		last = vals[i]
 	}
 
 	return vals
@@ -354,21 +360,29 @@ func (t *Template53) reverseSpatialDifferencing1(diffVals []int32, firstVals []i
 //                                  = X[n] - 2*X[n-1] + X[n-2]
 // Reversal: X[n] = Z[n] + 2*X[n-1] - X[n-2] + min_val
 //
-// The min_val offset is added at each step per the GRIB2 specification
-// and reference implementations (wgrib2, go-grib2).
-// The firstVals array contains the initial two undifferenced reference values.
+// Per GRIB2 spec and reference implementations (wgrib2, go-grib2):
+// - The first n values in the packed data are set to zero (placeholders)
+// - These are replaced in-place with the firstVals (extra descriptors)
+// - The differencing formula is applied starting from index n
 func (t *Template53) reverseSpatialDifferencing2(diffVals []int32, firstVals []int32, minVal int32) []int32 {
 	if len(diffVals) < 2 {
 		return diffVals
 	}
 
 	vals := make([]int32, len(diffVals))
-	// First two values are the references from extra descriptors (not from packed data)
+
+	// Replace first two values with extra descriptors (reference values)
 	vals[0] = firstVals[0]
 	vals[1] = firstVals[1]
 
+	// Apply second-order differencing reversal starting from index 2
+	penultimate := vals[0]
+	last := vals[1]
+
 	for i := 2; i < len(diffVals); i++ {
-		vals[i] = diffVals[i] + 2*vals[i-1] - vals[i-2] + minVal
+		vals[i] = diffVals[i] + minVal + last + last - penultimate
+		penultimate = last
+		last = vals[i]
 	}
 
 	return vals

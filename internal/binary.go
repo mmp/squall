@@ -343,3 +343,31 @@ func (br *BitReader) ReadSignedBytes(n int) (int64, error) {
 
 	return int64(val), nil
 }
+
+// ReadSignedBytesSignMagnitude reads n bytes (octets) as a signed integer using sign-magnitude encoding.
+// Sign-magnitude encoding: the most significant bit is the sign bit (1=negative),
+// and the remaining bits represent the magnitude.
+// The reader must be byte-aligned when calling this method.
+// Returns the value as int64 (big-endian).
+func (br *BitReader) ReadSignedBytesSignMagnitude(n int) (int64, error) {
+	if n < 1 || n > 8 {
+		return 0, fmt.Errorf("ReadSignedBytesSignMagnitude n must be in range [1, 8], got %d", n)
+	}
+
+	val, err := br.ReadBytes(n)
+	if err != nil {
+		return 0, err
+	}
+
+	// Extract sign bit (most significant bit of first byte)
+	signBit := uint64(1) << (n*8 - 1)
+	isNegative := (val & signBit) != 0
+
+	// Extract magnitude (all bits except the sign bit)
+	magnitude := val & ^signBit
+
+	if isNegative {
+		return -int64(magnitude), nil
+	}
+	return int64(magnitude), nil
+}
