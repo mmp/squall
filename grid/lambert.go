@@ -96,13 +96,13 @@ func (g *LambertConformalGrid) NumPoints() int {
 //
 // For Lambert Conformal projection, this requires inverse projection
 // from grid coordinates (i, j) to geographic coordinates (lat, lon).
-func (g *LambertConformalGrid) Latitudes() []float64 {
+func (g *LambertConformalGrid) Latitudes() []float32 {
 	lats, _ := g.Coordinates()
 	return lats
 }
 
 // Longitudes generates longitude values for all grid points.
-func (g *LambertConformalGrid) Longitudes() []float64 {
+func (g *LambertConformalGrid) Longitudes() []float32 {
 	_, lons := g.Coordinates()
 	return lons
 }
@@ -111,12 +111,12 @@ func (g *LambertConformalGrid) Longitudes() []float64 {
 //
 // Uses inverse Lambert Conformal projection to convert from grid coordinates
 // to geographic coordinates.
-func (g *LambertConformalGrid) Coordinates() ([]float64, []float64) {
+func (g *LambertConformalGrid) Coordinates() ([]float32, []float32) {
 	nPoints := int(g.Nx * g.Ny)
-	lats := make([]float64, nPoints)
-	lons := make([]float64, nPoints)
+	lats := make([]float32, nPoints)
+	lons := make([]float32, nPoints)
 
-	// Convert to degrees and radians
+	// Convert to degrees and radians - use float64 for trig operations
 	lat1 := float64(g.La1) / 1e6    // Latitude of first grid point
 	lon1 := float64(g.Lo1) / 1e6    // Longitude of first grid point
 	lonV := float64(g.LoV) / 1e6    // Longitude parallel to y-axis
@@ -194,9 +194,9 @@ func (g *LambertConformalGrid) Coordinates() ([]float64, []float64) {
 			lat := (2.0 * math.Atan(math.Pow((earthRadius*F)/rho, 1.0/n))) - (math.Pi / 2.0)
 			lon := lonVRad + (theta / n)
 
-			// Convert to degrees
-			lats[idx] = lat * 180.0 / math.Pi
-			lons[idx] = lon * 180.0 / math.Pi
+			// Convert to degrees and store as float32
+			lats[idx] = float32(lat * 180.0 / math.Pi)
+			lons[idx] = float32(lon * 180.0 / math.Pi)
 
 			// Normalize longitude to [0, 360)
 			for lons[idx] < 0 {

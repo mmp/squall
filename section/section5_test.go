@@ -210,7 +210,7 @@ func TestTemplate50Decode(t *testing.T) {
 			}
 
 			for i, expected := range tt.expectedValues {
-				if math.Abs(values[i]-expected) > 0.001 {
+				if math.Abs(float64(values[i])-expected) > 0.001 {
 					t.Errorf("value[%d]: got %g, want %g", i, values[i], expected)
 				}
 			}
@@ -247,7 +247,7 @@ func TestTemplate50DecodeWithBitmap(t *testing.T) {
 	// Check values
 	expected := []float64{100.0, 9.999e20, 105.0, 9.999e20, 110.0}
 	for i, exp := range expected {
-		if math.Abs(values[i]-exp) > 1e15 {
+		if math.Abs(float64(values[i])-exp) > 1e15 {
 			t.Errorf("value[%d]: got %g, want %g", i, values[i], exp)
 		}
 	}
@@ -273,7 +273,7 @@ func TestTemplate50DecodeZeroBitsPerValue(t *testing.T) {
 	}
 
 	for i, val := range values {
-		if math.Abs(val-273.15) > 0.001 {
+		if math.Abs(float64(val)-273.15) > 0.001 {
 			t.Errorf("value[%d]: got %g, want 273.15", i, val)
 		}
 	}

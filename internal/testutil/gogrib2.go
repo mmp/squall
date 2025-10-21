@@ -29,14 +29,14 @@ func ParseGoGrib2(gribFile string) ([]*FieldData, error) {
 
 	for _, grib := range gribs {
 		// Extract coordinates and values
-		latitudes := make([]float64, len(grib.Values))
-		longitudes := make([]float64, len(grib.Values))
-		values := make([]float64, len(grib.Values))
+		latitudes := make([]float32, len(grib.Values))
+		longitudes := make([]float32, len(grib.Values))
+		values := make([]float32, len(grib.Values))
 
 		for i, v := range grib.Values {
-			latitudes[i] = float64(v.Latitude)
-			longitudes[i] = float64(v.Longitude)
-			values[i] = float64(v.Value)
+			latitudes[i] = float32(v.Latitude)
+			longitudes[i] = float32(v.Longitude)
+			values[i] = float32(v.Value)
 		}
 
 		fd := &FieldData{

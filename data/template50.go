@@ -77,7 +77,7 @@ func (t *Template50) BitsPerValue() uint8 {
 // set to 9.999e20 where bitmap is false.
 //
 // If bitmap is nil, all values are assumed to be valid.
-func (t *Template50) Decode(packedData []byte, bitmap []bool) ([]float64, error) {
+func (t *Template50) Decode(packedData []byte, bitmap []bool) ([]float32, error) {
 	// Handle special case: 0 bits per value means all values are the reference value
 	if t.NumBitsPerValue == 0 {
 		count := t.NumberOfDataValues
@@ -85,7 +85,7 @@ func (t *Template50) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 			count = uint32(len(bitmap))
 		}
 
-		values := make([]float64, count)
+		values := make([]float32, count)
 		refValue := t.applyScaling(0)
 
 		if bitmap != nil {
@@ -127,8 +127,8 @@ func (t *Template50) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 }
 
 // decodeWithoutBitmap decodes when all values are valid.
-func (t *Template50) decodeWithoutBitmap(packedValues []uint32) []float64 {
-	values := make([]float64, len(packedValues))
+func (t *Template50) decodeWithoutBitmap(packedValues []uint32) []float32 {
+	values := make([]float32, len(packedValues))
 	for i, packed := range packedValues {
 		values[i] = t.applyScaling(packed)
 	}
@@ -136,13 +136,13 @@ func (t *Template50) decodeWithoutBitmap(packedValues []uint32) []float64 {
 }
 
 // decodeWithBitmap decodes and applies bitmap.
-func (t *Template50) decodeWithBitmap(packedValues []uint32, bitmap []bool) ([]float64, error) {
+func (t *Template50) decodeWithBitmap(packedValues []uint32, bitmap []bool) ([]float32, error) {
 	if len(packedValues) > len(bitmap) {
 		return nil, fmt.Errorf("more packed values (%d) than bitmap entries (%d)",
 			len(packedValues), len(bitmap))
 	}
 
-	values := make([]float64, len(bitmap))
+	values := make([]float32, len(bitmap))
 	packedIdx := 0
 
 	for i := range bitmap {
@@ -168,19 +168,19 @@ func (t *Template50) decodeWithBitmap(packedValues []uint32, bitmap []bool) ([]f
 // applyScaling applies the scaling formula to a packed value.
 //
 // Formula: value = (R + X * 2^E) / 10^D
-func (t *Template50) applyScaling(packedValue uint32) float64 {
+func (t *Template50) applyScaling(packedValue uint32) float32 {
 	// Start with reference value
-	value := float64(t.ReferenceValue)
+	value := float32(t.ReferenceValue)
 
 	// Add scaled packed value: X * 2^E
 	if packedValue != 0 {
-		binaryScale := math.Pow(2.0, float64(t.BinaryScaleFactor))
-		value += float64(packedValue) * binaryScale
+		binaryScale := float32(math.Pow(2.0, float64(t.BinaryScaleFactor)))
+		value += float32(packedValue) * binaryScale
 	}
 
 	// Apply decimal scaling: / 10^D
 	if t.DecimalScaleFactor != 0 {
-		decimalScale := math.Pow(10.0, float64(t.DecimalScaleFactor))
+		decimalScale := float32(math.Pow(10.0, float64(t.DecimalScaleFactor)))
 		value /= decimalScale
 	}
 

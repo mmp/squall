@@ -16,9 +16,9 @@ type FieldData struct {
 	Level    string
 
 	// Grid data
-	Latitudes  []float64
-	Longitudes []float64
-	Values     []float64
+	Latitudes  []float32
+	Longitudes []float32
+	Values     []float32
 
 	// Source for debugging
 	Source string
@@ -41,21 +41,21 @@ type ComparisonResult struct {
 	Errors []string
 }
 
-// ULPDiff calculates the ULP (Units in Last Place) difference between two float64 values.
+// ULPDiff calculates the ULP (Units in Last Place) difference between two float32 values.
 //
 // ULP is a measure of the smallest representable difference between two floating-point
 // numbers. A difference of 1 ULP means the numbers are as close as they can be while
 // still being different.
-func ULPDiff(a, b float64) int64 {
+func ULPDiff(a, b float32) int64 {
 	// Handle special cases
-	if math.IsNaN(a) || math.IsNaN(b) {
-		if math.IsNaN(a) && math.IsNaN(b) {
+	if math.IsNaN(float64(a)) || math.IsNaN(float64(b)) {
+		if math.IsNaN(float64(a)) && math.IsNaN(float64(b)) {
 			return 0
 		}
 		return math.MaxInt64
 	}
 
-	if math.IsInf(a, 0) || math.IsInf(b, 0) {
+	if math.IsInf(float64(a), 0) || math.IsInf(float64(b), 0) {
 		if a == b {
 			return 0
 		}
@@ -70,16 +70,16 @@ func ULPDiff(a, b float64) int64 {
 	// Handle sign differences
 	if (a < 0) != (b < 0) {
 		// Different signs - calculate ULPs to zero and add
-		aULP := math.Abs(float64(math.Float64bits(a)))
-		bULP := math.Abs(float64(math.Float64bits(b)))
+		aULP := math.Abs(float64(math.Float32bits(a)))
+		bULP := math.Abs(float64(math.Float32bits(b)))
 		return int64(aULP + bULP)
 	}
 
 	// Same sign - calculate bit difference
-	aBits := math.Float64bits(a)
-	bBits := math.Float64bits(b)
+	aBits := math.Float32bits(a)
+	bBits := math.Float32bits(b)
 
-	var diff uint64
+	var diff uint32
 	if aBits > bBits {
 		diff = aBits - bBits
 	} else {
@@ -90,7 +90,7 @@ func ULPDiff(a, b float64) int64 {
 }
 
 // CompareFloatsULP checks if two floats are within a specified ULP tolerance.
-func CompareFloatsULP(a, b float64, maxULP int64) bool {
+func CompareFloatsULP(a, b float32, maxULP int64) bool {
 	// Handle missing values (9.999e20)
 	if a > 9e20 && b > 9e20 {
 		return true
@@ -216,12 +216,12 @@ func compareCoordinates(a, b *FieldData, result *ComparisonResult) bool {
 
 		for _, i := range indices {
 			if i < len(a.Latitudes) && i < len(b.Latitudes) {
-				if math.Abs(a.Latitudes[i]-b.Latitudes[i]) > 0.001 {
+				if math.Abs(float64(a.Latitudes[i]-b.Latitudes[i])) > 0.001 {
 					result.Errors = append(result.Errors,
 						fmt.Sprintf("latitude[%d] mismatch: %.6f vs %.6f", i, a.Latitudes[i], b.Latitudes[i]))
 					match = false
 				}
-				if math.Abs(a.Longitudes[i]-b.Longitudes[i]) > 0.001 {
+				if math.Abs(float64(a.Longitudes[i]-b.Longitudes[i])) > 0.001 {
 					result.Errors = append(result.Errors,
 						fmt.Sprintf("longitude[%d] mismatch: %.6f vs %.6f", i, a.Longitudes[i], b.Longitudes[i]))
 					match = false

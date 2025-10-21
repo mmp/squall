@@ -33,22 +33,22 @@ func TestLatLonGridCoordinates(t *testing.T) {
 	}
 
 	// Expected coordinates (in scan order: row by row, west to east)
-	expectedLats := []float64{
+	expectedLats := []float32{
 		90, 90, 90, // Row 1: 90°N
 		89, 89, 89, // Row 2: 89°N
 		88, 88, 88, // Row 3: 88°N
 	}
-	expectedLons := []float64{
+	expectedLons := []float32{
 		0, 1, 2, // Column 1, 2, 3
 		0, 1, 2,
 		0, 1, 2,
 	}
 
 	for i := range lats {
-		if math.Abs(lats[i]-expectedLats[i]) > 0.001 {
+		if math.Abs(float64(lats[i]-expectedLats[i])) > 0.001 {
 			t.Errorf("lat[%d]: got %.3f, want %.3f", i, lats[i], expectedLats[i])
 		}
-		if math.Abs(lons[i]-expectedLons[i]) > 0.001 {
+		if math.Abs(float64(lons[i]-expectedLons[i])) > 0.001 {
 			t.Errorf("lon[%d]: got %.3f, want %.3f", i, lons[i], expectedLons[i])
 		}
 	}
@@ -73,20 +73,20 @@ func TestLatLonGridCoordinatesReversedI(t *testing.T) {
 	lons := grid.Longitudes()
 
 	// Expected: scanning east to west
-	expectedLats := []float64{
+	expectedLats := []float32{
 		10, 10, 10, // Row 1
 		9, 9, 9,    // Row 2
 	}
-	expectedLons := []float64{
+	expectedLons := []float32{
 		2, 1, 0, // East to west
 		2, 1, 0,
 	}
 
 	for i := range lats {
-		if math.Abs(lats[i]-expectedLats[i]) > 0.001 {
+		if math.Abs(float64(lats[i]-expectedLats[i])) > 0.001 {
 			t.Errorf("lat[%d]: got %.3f, want %.3f", i, lats[i], expectedLats[i])
 		}
-		if math.Abs(lons[i]-expectedLons[i]) > 0.001 {
+		if math.Abs(float64(lons[i]-expectedLons[i])) > 0.001 {
 			t.Errorf("lon[%d]: got %.3f, want %.3f", i, lons[i], expectedLons[i])
 		}
 	}
@@ -111,22 +111,22 @@ func TestLatLonGridCoordinatesReversedJ(t *testing.T) {
 	lons := grid.Longitudes()
 
 	// Expected: scanning south to north
-	expectedLats := []float64{
+	expectedLats := []float32{
 		-10, -10, // Row 1: 10°S
 		-9, -9,   // Row 2: 9°S
 		-8, -8,   // Row 3: 8°S
 	}
-	expectedLons := []float64{
+	expectedLons := []float32{
 		0, 1,
 		0, 1,
 		0, 1,
 	}
 
 	for i := range lats {
-		if math.Abs(lats[i]-expectedLats[i]) > 0.001 {
+		if math.Abs(float64(lats[i]-expectedLats[i])) > 0.001 {
 			t.Errorf("lat[%d]: got %.3f, want %.3f", i, lats[i], expectedLats[i])
 		}
-		if math.Abs(lons[i]-expectedLons[i]) > 0.001 {
+		if math.Abs(float64(lons[i]-expectedLons[i])) > 0.001 {
 			t.Errorf("lon[%d]: got %.3f, want %.3f", i, lons[i], expectedLons[i])
 		}
 	}
@@ -150,13 +150,13 @@ func TestLatLonGridCoordinatesDateLine(t *testing.T) {
 	lons := grid.Longitudes()
 
 	// Should wrap around correctly: 358, 359, 0
-	expectedLons := []float64{
+	expectedLons := []float32{
 		358, 359, 0,
 		358, 359, 0,
 	}
 
 	for i := range lons {
-		if math.Abs(lons[i]-expectedLons[i]) > 0.001 {
+		if math.Abs(float64(lons[i]-expectedLons[i])) > 0.001 {
 			t.Errorf("lon[%d]: got %.3f, want %.3f", i, lons[i], expectedLons[i])
 		}
 	}
@@ -179,13 +179,13 @@ func TestLatLonGridCoordinatesNegativeLongitudes(t *testing.T) {
 	lons := grid.Longitudes()
 
 	// Should normalize negative longitudes to [0, 360)
-	expectedLons := []float64{
+	expectedLons := []float32{
 		350, 351, 352,
 		350, 351, 352,
 	}
 
 	for i := range lons {
-		if math.Abs(lons[i]-expectedLons[i]) > 0.001 {
+		if math.Abs(float64(lons[i]-expectedLons[i])) > 0.001 {
 			t.Errorf("lon[%d]: got %.3f, want %.3f", i, lons[i], expectedLons[i])
 		}
 	}
@@ -218,29 +218,29 @@ func TestLatLonGridCoordinatesGlobalGrid(t *testing.T) {
 	}
 
 	// Check first point (north pole, prime meridian)
-	if math.Abs(lats[0]-90.0) > 0.001 {
+	if math.Abs(float64(lats[0]-90.0)) > 0.001 {
 		t.Errorf("first lat: got %.3f, want 90.0", lats[0])
 	}
-	if math.Abs(lons[0]-0.0) > 0.001 {
+	if math.Abs(float64(lons[0]-0.0)) > 0.001 {
 		t.Errorf("first lon: got %.3f, want 0.0", lons[0])
 	}
 
 	// Check last point (south pole, 357.5°E)
 	lastIdx := numPoints - 1
-	if math.Abs(lats[lastIdx]-(-90.0)) > 0.001 {
+	if math.Abs(float64(lats[lastIdx]-(-90.0))) > 0.001 {
 		t.Errorf("last lat: got %.3f, want -90.0", lats[lastIdx])
 	}
-	if math.Abs(lons[lastIdx]-357.5) > 0.001 {
+	if math.Abs(float64(lons[lastIdx]-357.5)) > 0.001 {
 		t.Errorf("last lon: got %.3f, want 357.5", lons[lastIdx])
 	}
 
 	// Check a middle point (row 36, col 72 -> index 36*144 + 72)
 	// Should be at 0°N (90 - 36*2.5 = 0), 180°E (0 + 72*2.5 = 180)
 	midIdx := 36*144 + 72
-	if math.Abs(lats[midIdx]-0.0) > 0.001 {
+	if math.Abs(float64(lats[midIdx]-0.0)) > 0.001 {
 		t.Errorf("middle lat: got %.3f, want 0.0", lats[midIdx])
 	}
-	if math.Abs(lons[midIdx]-180.0) > 0.001 {
+	if math.Abs(float64(lons[midIdx]-180.0)) > 0.001 {
 		t.Errorf("middle lon: got %.3f, want 180.0", lons[midIdx])
 	}
 }
@@ -264,20 +264,20 @@ func TestLatLonGridCoordinatesNonConsecutive(t *testing.T) {
 	lons := grid.Longitudes()
 
 	// Expected: j varies fastest (column by column)
-	expectedLats := []float64{
+	expectedLats := []float32{
 		10, 9, 8, // Column 1
 		10, 9, 8, // Column 2
 	}
-	expectedLons := []float64{
+	expectedLons := []float32{
 		0, 0, 0, // Column 1: 0°E
 		1, 1, 1, // Column 2: 1°E
 	}
 
 	for i := range lats {
-		if math.Abs(lats[i]-expectedLats[i]) > 0.001 {
+		if math.Abs(float64(lats[i]-expectedLats[i])) > 0.001 {
 			t.Errorf("lat[%d]: got %.3f, want %.3f", i, lats[i], expectedLats[i])
 		}
-		if math.Abs(lons[i]-expectedLons[i]) > 0.001 {
+		if math.Abs(float64(lons[i]-expectedLons[i])) > 0.001 {
 			t.Errorf("lon[%d]: got %.3f, want %.3f", i, lons[i], expectedLons[i])
 		}
 	}
@@ -340,10 +340,10 @@ func TestLatLonGridCoordinatesMethod(t *testing.T) {
 	}
 
 	// Verify first and last points
-	if math.Abs(lats[0]-10.0) > 0.001 {
+	if math.Abs(float64(lats[0]-10.0)) > 0.001 {
 		t.Errorf("first lat: got %.3f, want 10.0", lats[0])
 	}
-	if math.Abs(lons[0]-0.0) > 0.001 {
+	if math.Abs(float64(lons[0]-0.0)) > 0.001 {
 		t.Errorf("first lon: got %.3f, want 0.0", lons[0])
 	}
 }

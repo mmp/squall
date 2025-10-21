@@ -76,8 +76,8 @@ func TestLambertConformalGrid_Coordinates(t *testing.T) {
 					continue
 				}
 
-				latErr := math.Abs(lats[idx] - expected.lat)
-				lonErr := math.Abs(lons[idx] - expected.lon)
+				latErr := math.Abs(float64(lats[idx]) - expected.lat)
+				lonErr := math.Abs(float64(lons[idx]) - expected.lon)
 
 				if latErr > tt.tolerance {
 					t.Errorf("Index %d: latitude error %.6f° exceeds tolerance %.6f° (expected %.6f, got %.6f)",

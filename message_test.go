@@ -281,8 +281,8 @@ func TestMessageDecodeData(t *testing.T) {
 
 	// Values should be 250.0, 251.0, ..., 258.0
 	for i, val := range values {
-		expected := 250.0 + float64(i)
-		if math.Abs(val-expected) > 0.001 {
+		expected := float32(250.0 + float64(i))
+		if math.Abs(float64(val-expected)) > 0.001 {
 			t.Errorf("value[%d]: got %.3f, want %.3f", i, val, expected)
 		}
 	}
@@ -310,18 +310,18 @@ func TestMessageCoordinates(t *testing.T) {
 	}
 
 	// First point should be 90°N, 0°E
-	if math.Abs(lats[0]-90.0) > 0.001 {
+	if math.Abs(float64(lats[0]-90.0)) > 0.001 {
 		t.Errorf("first lat: got %.3f, want 90.0", lats[0])
 	}
-	if math.Abs(lons[0]-0.0) > 0.001 {
+	if math.Abs(float64(lons[0]-0.0)) > 0.001 {
 		t.Errorf("first lon: got %.3f, want 0.0", lons[0])
 	}
 
 	// Last point should be 88°N, 2°E
-	if math.Abs(lats[8]-88.0) > 0.001 {
+	if math.Abs(float64(lats[8]-88.0)) > 0.001 {
 		t.Errorf("last lat: got %.3f, want 88.0", lats[8])
 	}
-	if math.Abs(lons[8]-2.0) > 0.001 {
+	if math.Abs(float64(lons[8]-2.0)) > 0.001 {
 		t.Errorf("last lon: got %.3f, want 2.0", lons[8])
 	}
 }

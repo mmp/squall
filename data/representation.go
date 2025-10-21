@@ -15,8 +15,8 @@ type Representation interface {
 
 	// Decode unpacks the data from packed bytes and applies scaling.
 	// The bitmap parameter is optional (nil means all points are valid).
-	// Returns a slice of float64 values in grid order.
-	Decode(packedData []byte, bitmap []bool) ([]float64, error)
+	// Returns a slice of float32 values in grid order.
+	Decode(packedData []byte, bitmap []bool) ([]float32, error)
 
 	// String returns a human-readable description.
 	String() string

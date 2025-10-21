@@ -15,13 +15,13 @@ import (
 // and metadata.
 type GRIB2 struct {
 	// Data values in grid scan order
-	Data []float64
+	Data []float32
 
 	// Latitudes for each grid point (same length as Data)
-	Latitudes []float64
+	Latitudes []float32
 
 	// Longitudes for each grid point (same length as Data)
-	Longitudes []float64
+	Longitudes []float32
 
 	// Metadata from the message
 	Discipline       string    // Meteorological, Hydrological, etc.
@@ -37,7 +37,7 @@ type GRIB2 struct {
 
 	// Level/surface information
 	Level      string  // Type of level (isobaric, surface, etc.)
-	LevelValue float64 // Value of the level (e.g., 500 for 500 hPa)
+	LevelValue float32 // Value of the level (e.g., 500 for 500 hPa)
 
 	// Grid information
 	GridType   string // Lat/Lon, Gaussian, Lambert, etc.
@@ -189,7 +189,7 @@ func messageToGRIB2(msg *Message) (*GRIB2, error) {
 		if template, ok := msg.Section4.Product.(*product.Template40); ok {
 			levelType := int(template.FirstSurfaceType)
 			g2.Level = tables.GetLevelName(levelType)
-			g2.LevelValue = float64(template.FirstSurfaceValue)
+			g2.LevelValue = float32(template.FirstSurfaceValue)
 
 			// Format level description with value
 			if template.FirstSurfaceValue != 0 {
@@ -208,7 +208,7 @@ func (g *GRIB2) String() string {
 }
 
 // MinValue returns the minimum data value in the field.
-func (g *GRIB2) MinValue() float64 {
+func (g *GRIB2) MinValue() float32 {
 	if len(g.Data) == 0 {
 		return 0
 	}
@@ -227,7 +227,7 @@ func (g *GRIB2) MinValue() float64 {
 }
 
 // MaxValue returns the maximum data value in the field.
-func (g *GRIB2) MaxValue() float64 {
+func (g *GRIB2) MaxValue() float32 {
 	if len(g.Data) == 0 {
 		return 0
 	}

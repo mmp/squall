@@ -52,18 +52,18 @@ func ParseWgrib2CSV(gribFile string) (map[string]*FieldData, error) {
 		valueStr := record[6]
 
 		// Parse coordinates
-		lon, err := strconv.ParseFloat(lonStr, 64)
+		lon, err := strconv.ParseFloat(lonStr, 32)
 		if err != nil {
 			return nil, fmt.Errorf("invalid longitude at line %d: %v", i+1, err)
 		}
 
-		lat, err := strconv.ParseFloat(latStr, 64)
+		lat, err := strconv.ParseFloat(latStr, 32)
 		if err != nil {
 			return nil, fmt.Errorf("invalid latitude at line %d: %v", i+1, err)
 		}
 
 		// Parse value
-		value, err := strconv.ParseFloat(valueStr, 64)
+		value, err := strconv.ParseFloat(valueStr, 32)
 		if err != nil {
 			return nil, fmt.Errorf("invalid value at line %d: %v", i+1, err)
 		}
@@ -91,18 +91,18 @@ func ParseWgrib2CSV(gribFile string) (map[string]*FieldData, error) {
 				VerTime:    verTime,
 				Field:      field,
 				Level:      level,
-				Latitudes:  []float64{},
-				Longitudes: []float64{},
-				Values:     []float64{},
+				Latitudes:  []float32{},
+				Longitudes: []float32{},
+				Values:     []float32{},
 				Source:     "wgrib2",
 			}
 			fieldMap[key] = fd
 		}
 
 		// Append data point
-		fd.Latitudes = append(fd.Latitudes, lat)
-		fd.Longitudes = append(fd.Longitudes, lon)
-		fd.Values = append(fd.Values, value)
+		fd.Latitudes = append(fd.Latitudes, float32(lat))
+		fd.Longitudes = append(fd.Longitudes, float32(lon))
+		fd.Values = append(fd.Values, float32(value))
 	}
 
 	return fieldMap, nil

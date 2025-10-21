@@ -215,12 +215,12 @@ func parseSectionAt(data []byte, offset int, expectedSection uint8) (interface{}
 
 // DecodeData decodes the data values from this message.
 //
-// Returns a slice of float64 values in grid scan order.
+// Returns a slice of float32 values in grid scan order.
 // Missing/undefined values are represented as 9.999e20.
 //
 // This method combines the data representation (Section 5), bitmap (Section 6),
 // and packed data (Section 7) to produce the final decoded values.
-func (m *Message) DecodeData() ([]float64, error) {
+func (m *Message) DecodeData() ([]float32, error) {
 	if m.Section5 == nil || m.Section5.Representation == nil {
 		return nil, fmt.Errorf("message has no data representation (Section 5)")
 	}
@@ -251,7 +251,7 @@ func (m *Message) DecodeData() ([]float64, error) {
 //
 // Currently only supports LatLonGrid (Template 3.0). Returns an error
 // for other grid types.
-func (m *Message) Coordinates() (latitudes, longitudes []float64, err error) {
+func (m *Message) Coordinates() (latitudes, longitudes []float32, err error) {
 	if m.Section3 == nil || m.Section3.Grid == nil {
 		return nil, nil, fmt.Errorf("message has no grid definition (Section 3)")
 	}
@@ -259,7 +259,7 @@ func (m *Message) Coordinates() (latitudes, longitudes []float64, err error) {
 	// Check if it's a LatLonGrid
 	switch grid := m.Section3.Grid.(type) {
 	case interface {
-		Coordinates() ([]float64, []float64)
+		Coordinates() ([]float32, []float32)
 	}:
 		lats, lons := grid.Coordinates()
 		return lats, lons, nil
