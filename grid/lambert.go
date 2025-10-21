@@ -117,13 +117,15 @@ func (g *LambertConformalGrid) Coordinates() ([]float64, []float64) {
 	lons := make([]float64, nPoints)
 
 	// Convert to degrees and radians
-	lat1 := float64(g.La1) / 1e6
-	lonV := float64(g.LoV) / 1e6
-	latin1 := float64(g.Latin1) / 1e6
-	latin2 := float64(g.Latin2) / 1e6
+	lat1 := float64(g.La1) / 1e6    // Latitude of first grid point
+	lon1 := float64(g.Lo1) / 1e6    // Longitude of first grid point
+	lonV := float64(g.LoV) / 1e6    // Longitude parallel to y-axis
+	latin1 := float64(g.Latin1) / 1e6  // First standard parallel
+	latin2 := float64(g.Latin2) / 1e6  // Second standard parallel
 
 	// Convert to radians for projection calculations
 	lat1Rad := lat1 * math.Pi / 180.0
+	lon1Rad := lon1 * math.Pi / 180.0
 	latin1Rad := latin1 * math.Pi / 180.0
 	latin2Rad := latin2 * math.Pi / 180.0
 	lonVRad := lonV * math.Pi / 180.0
@@ -134,18 +136,26 @@ func (g *LambertConformalGrid) Coordinates() ([]float64, []float64) {
 	// Calculate projection parameters
 	var n float64 // Cone constant
 	if math.Abs(latin1-latin2) < 1e-6 {
+		// Tangent cone (single standard parallel)
 		n = math.Sin(latin1Rad)
 	} else {
+		// Secant cone (two standard parallels)
 		n = math.Log(math.Cos(latin1Rad)/math.Cos(latin2Rad)) /
 			math.Log(math.Tan((math.Pi/4.0)+(latin2Rad/2.0))/math.Tan((math.Pi/4.0)+(latin1Rad/2.0)))
 	}
 
 	F := (math.Cos(latin1Rad) * math.Pow(math.Tan((math.Pi/4.0)+(latin1Rad/2.0)), n)) / n
-	rho0 := earthRadius * F * math.Pow(math.Tan((math.Pi/4.0)+(lat1Rad/2.0)), -n)
 
-	// Grid spacing in meters
-	dx := float64(g.Dx)
-	dy := float64(g.Dy)
+	// Calculate x0, y0: the projection coordinates of the first grid point (La1, Lo1)
+	// Forward projection to get the origin point in projection coordinates
+	rho1 := earthRadius * F * math.Pow(math.Tan((math.Pi/4.0)+(lat1Rad/2.0)), -n)
+	theta1 := n * (lon1Rad - lonVRad)
+	x0 := rho1 * math.Sin(theta1)
+	y0 := -rho1 * math.Cos(theta1)  // Note: origin at north pole has y pointing down
+
+	// Grid spacing in meters (Dx and Dy are stored in millimeters per GRIB2 spec)
+	dx := float64(g.Dx) / 1000.0
+	dy := float64(g.Dy) / 1000.0
 
 	// Determine scanning direction
 	iPositive := (g.ScanningMode & 0x80) == 0 // bit 1: 0 = +i, 1 = -i
@@ -155,25 +165,30 @@ func (g *LambertConformalGrid) Coordinates() ([]float64, []float64) {
 	for j := uint32(0); j < g.Ny; j++ {
 		for i := uint32(0); i < g.Nx; i++ {
 			// Calculate grid coordinates relative to first point
-			var x, y float64
+			var deltaX, deltaY float64
 			if iPositive {
-				x = float64(i) * dx
+				deltaX = float64(i) * dx
 			} else {
-				x = float64(g.Nx-1-i) * dx
+				deltaX = -float64(i) * dx
 			}
 			if jPositive {
-				y = float64(j) * dy
+				deltaY = float64(j) * dy
 			} else {
-				y = float64(g.Ny-1-j) * dy
+				deltaY = -float64(j) * dy
 			}
+
+			// Projection coordinates for this grid point
+			x := x0 + deltaX
+			y := y0 + deltaY
 
 			// Inverse Lambert Conformal projection
-			rho := math.Sqrt(x*x + (rho0-y)*(rho0-y))
+			rho := math.Sqrt(x*x + y*y)
 			if n < 0 {
 				rho = -rho
+				y = -y
 			}
 
-			theta := math.Atan2(x, rho0-y)
+			theta := math.Atan2(x, -y)
 
 			// Convert to geographic coordinates
 			lat := (2.0 * math.Atan(math.Pow((earthRadius*F)/rho, 1.0/n))) - (math.Pi / 2.0)
