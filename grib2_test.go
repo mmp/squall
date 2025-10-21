@@ -1,6 +1,7 @@
 package mgrib2
 
 import (
+	"bytes"
 	"context"
 	"testing"
 	"time"
@@ -9,7 +10,7 @@ import (
 func TestRead(t *testing.T) {
 	data := makeCompleteGRIB2Message()
 
-	fields, err := ReadBytes(data)
+	fields, err := Read(bytes.NewReader(data))
 	if err != nil {
 		t.Fatalf("Read failed: %v", err)
 	}
@@ -48,7 +49,7 @@ func TestRead(t *testing.T) {
 func TestReadMultiple(t *testing.T) {
 	data := makeMultipleMessages(5)
 
-	fields, err := ReadBytes(data)
+	fields, err := Read(bytes.NewReader(data))
 	if err != nil {
 		t.Fatalf("Read failed: %v", err)
 	}
@@ -71,7 +72,7 @@ func TestReadMultiple(t *testing.T) {
 func TestReadWithOptionsWorkers(t *testing.T) {
 	data := makeMultipleMessages(10)
 
-	fields, err := ReadBytesWithOptions(data, WithWorkers(4))
+	fields, err := ReadWithOptions(bytes.NewReader(data), WithWorkers(4))
 	if err != nil {
 		t.Fatalf("ReadWithOptions failed: %v", err)
 	}
@@ -84,7 +85,7 @@ func TestReadWithOptionsWorkers(t *testing.T) {
 func TestReadWithOptionsSequential(t *testing.T) {
 	data := makeMultipleMessages(5)
 
-	fields, err := ReadBytesWithOptions(data, WithSequential())
+	fields, err := ReadWithOptions(bytes.NewReader(data), WithSequential())
 	if err != nil {
 		t.Fatalf("ReadWithOptions failed: %v", err)
 	}
@@ -100,7 +101,7 @@ func TestReadWithOptionsContext(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	fields, err := ReadBytesWithOptions(data, WithContext(ctx))
+	fields, err := ReadWithOptions(bytes.NewReader(data), WithContext(ctx))
 	if err != nil {
 		t.Fatalf("ReadWithOptions failed: %v", err)
 	}
@@ -120,7 +121,7 @@ func TestReadWithOptionsFilter(t *testing.T) {
 		return count%2 == 0
 	}
 
-	fields, err := ReadBytesWithOptions(data, WithFilter(filter))
+	fields, err := ReadWithOptions(bytes.NewReader(data), WithFilter(filter))
 	if err != nil {
 		t.Fatalf("ReadWithOptions failed: %v", err)
 	}
@@ -134,7 +135,7 @@ func TestReadWithOptionsParameterCategory(t *testing.T) {
 	data := makeCompleteGRIB2Message()
 
 	// Filter for temperature (category 0)
-	fields, err := ReadBytesWithOptions(data, WithParameterCategory(0))
+	fields, err := ReadWithOptions(bytes.NewReader(data), WithParameterCategory(0))
 	if err != nil {
 		t.Fatalf("ReadWithOptions failed: %v", err)
 	}
@@ -144,7 +145,7 @@ func TestReadWithOptionsParameterCategory(t *testing.T) {
 	}
 
 	// Filter for non-existent category
-	fields, err = ReadBytesWithOptions(data, WithParameterCategory(99))
+	fields, err = ReadWithOptions(bytes.NewReader(data), WithParameterCategory(99))
 	if err != nil {
 		t.Fatalf("ReadWithOptions failed: %v", err)
 	}
@@ -158,7 +159,7 @@ func TestReadWithOptionsDiscipline(t *testing.T) {
 	data := makeCompleteGRIB2Message()
 
 	// Filter for meteorological (discipline 0)
-	fields, err := ReadBytesWithOptions(data, WithDiscipline(0))
+	fields, err := ReadWithOptions(bytes.NewReader(data), WithDiscipline(0))
 	if err != nil {
 		t.Fatalf("ReadWithOptions failed: %v", err)
 	}
@@ -168,7 +169,7 @@ func TestReadWithOptionsDiscipline(t *testing.T) {
 	}
 
 	// Filter for non-existent discipline
-	fields, err = ReadBytesWithOptions(data, WithDiscipline(99))
+	fields, err = ReadWithOptions(bytes.NewReader(data), WithDiscipline(99))
 	if err != nil {
 		t.Fatalf("ReadWithOptions failed: %v", err)
 	}
@@ -182,7 +183,7 @@ func TestReadWithOptionsCenter(t *testing.T) {
 	data := makeCompleteGRIB2Message()
 
 	// Filter for NCEP (center 7)
-	fields, err := ReadBytesWithOptions(data, WithCenter(7))
+	fields, err := ReadWithOptions(bytes.NewReader(data), WithCenter(7))
 	if err != nil {
 		t.Fatalf("ReadWithOptions failed: %v", err)
 	}
@@ -195,7 +196,7 @@ func TestReadWithOptionsCenter(t *testing.T) {
 func TestGRIB2MinMaxValue(t *testing.T) {
 	data := makeCompleteGRIB2Message()
 
-	fields, err := ReadBytes(data)
+	fields, err := Read(bytes.NewReader(data))
 	if err != nil {
 		t.Fatalf("Read failed: %v", err)
 	}
@@ -217,7 +218,7 @@ func TestGRIB2MinMaxValue(t *testing.T) {
 func TestGRIB2CountValid(t *testing.T) {
 	data := makeCompleteGRIB2Message()
 
-	fields, err := ReadBytes(data)
+	fields, err := Read(bytes.NewReader(data))
 	if err != nil {
 		t.Fatalf("Read failed: %v", err)
 	}
@@ -233,7 +234,7 @@ func TestGRIB2CountValid(t *testing.T) {
 func TestGRIB2String(t *testing.T) {
 	data := makeCompleteGRIB2Message()
 
-	fields, err := ReadBytes(data)
+	fields, err := Read(bytes.NewReader(data))
 	if err != nil {
 		t.Fatalf("Read failed: %v", err)
 	}
@@ -253,7 +254,7 @@ func TestGRIB2String(t *testing.T) {
 func TestGRIB2GetMessage(t *testing.T) {
 	data := makeCompleteGRIB2Message()
 
-	fields, err := ReadBytes(data)
+	fields, err := Read(bytes.NewReader(data))
 	if err != nil {
 		t.Fatalf("Read failed: %v", err)
 	}
@@ -271,7 +272,7 @@ func TestGRIB2GetMessage(t *testing.T) {
 }
 
 func TestReadEmpty(t *testing.T) {
-	fields, err := ReadBytes([]byte{})
+	fields, err := Read(bytes.NewReader([]byte{}))
 	if err != nil {
 		t.Fatalf("Read with empty data failed: %v", err)
 	}
@@ -282,7 +283,7 @@ func TestReadEmpty(t *testing.T) {
 }
 
 func TestReadInvalid(t *testing.T) {
-	_, err := ReadBytes([]byte("invalid data"))
+	_, err := Read(bytes.NewReader([]byte("invalid data")))
 	if err == nil {
 		t.Error("expected error for invalid data, got nil")
 	}
@@ -292,7 +293,7 @@ func TestReadWithOptionsCombined(t *testing.T) {
 	data := makeMultipleMessages(10)
 
 	// Combine multiple options
-	fields, err := ReadBytesWithOptions(data,
+	fields, err := ReadWithOptions(bytes.NewReader(data),
 		WithWorkers(2),
 		WithParameterCategory(0),
 		WithDiscipline(0),
@@ -312,7 +313,7 @@ func BenchmarkRead(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := ReadBytes(data)
+		_, err := Read(bytes.NewReader(data))
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -324,7 +325,7 @@ func BenchmarkReadWithWorkers4(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := ReadBytesWithOptions(data, WithWorkers(4))
+		_, err := ReadWithOptions(bytes.NewReader(data), WithWorkers(4))
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -336,7 +337,7 @@ func BenchmarkReadSequential(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := ReadBytesWithOptions(data, WithSequential())
+		_, err := ReadWithOptions(bytes.NewReader(data), WithSequential())
 		if err != nil {
 			b.Fatal(err)
 		}

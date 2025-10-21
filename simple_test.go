@@ -1,6 +1,7 @@
 package mgrib2
 
 import (
+	"bytes"
 	"os"
 	"testing"
 )
@@ -14,7 +15,7 @@ func TestParseHRRRFile(t *testing.T) {
 	t.Logf("File size: %d bytes", len(data))
 
 	// Parse all fields - Template 5.3 (complex packing) is now fully supported
-	fields, err := ReadBytesWithOptions(data, WithSequential())
+	fields, err := ReadWithOptions(bytes.NewReader(data), WithSequential())
 	if err != nil {
 		t.Fatalf("Parse error: %v", err)
 	}

@@ -1,6 +1,7 @@
 package mgrib2_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log"
@@ -19,7 +20,7 @@ func Example_basic() {
 	// For this example, we'll use a placeholder
 	// In real code, you would use: fields, err := mgrib2.Read(file)
 	data := []byte{} // placeholder
-	fields, err := mgrib2.ReadBytes(data)
+	fields, err := mgrib2.Read(bytes.NewReader(data))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,7 +60,7 @@ func Example_parallel() {
 	data := []byte{} // placeholder
 
 	// Use 4 workers for parallel parsing
-	fields, err := mgrib2.ReadBytesWithOptions(data,
+	fields, err := mgrib2.ReadWithOptions(bytes.NewReader(data),
 		mgrib2.WithWorkers(4),
 	)
 	if err != nil {
@@ -74,7 +75,7 @@ func Example_filtering() {
 	data := []byte{} // placeholder
 
 	// Only read temperature fields (category 0)
-	fields, err := mgrib2.ReadBytesWithOptions(data,
+	fields, err := mgrib2.ReadWithOptions(bytes.NewReader(data),
 		mgrib2.WithParameterCategory(0),
 	)
 	if err != nil {
@@ -94,7 +95,7 @@ func Example_context() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	fields, err := mgrib2.ReadBytesWithOptions(data,
+	fields, err := mgrib2.ReadWithOptions(bytes.NewReader(data),
 		mgrib2.WithContext(ctx),
 	)
 	if err != nil {
@@ -108,7 +109,7 @@ func Example_context() {
 func Example_coordinates() {
 	data := []byte{} // placeholder
 
-	fields, err := mgrib2.ReadBytes(data)
+	fields, err := mgrib2.Read(bytes.NewReader(data))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -159,7 +160,7 @@ func Example_customFilter() {
 		return true
 	}
 
-	fields, err := mgrib2.ReadBytesWithOptions(data,
+	fields, err := mgrib2.ReadWithOptions(bytes.NewReader(data),
 		mgrib2.WithFilter(filter),
 	)
 	if err != nil {
@@ -177,7 +178,7 @@ func Example_multipleOptions() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	fields, err := mgrib2.ReadBytesWithOptions(data,
+	fields, err := mgrib2.ReadWithOptions(bytes.NewReader(data),
 		mgrib2.WithWorkers(8),
 		mgrib2.WithContext(ctx),
 		mgrib2.WithParameterCategory(0), // Temperature

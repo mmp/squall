@@ -1,7 +1,6 @@
 package mgrib2
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"time"
@@ -138,27 +137,6 @@ func ReadWithOptions(r io.ReadSeeker, opts ...ReadOption) ([]*GRIB2, error) {
 	}
 
 	return fields, nil
-}
-
-// ReadBytes parses GRIB2 messages from a byte slice.
-//
-// This is a convenience wrapper around Read that wraps the byte slice
-// in a bytes.Reader to provide io.ReadSeeker functionality.
-//
-// Example:
-//
-//	data, _ := os.ReadFile("forecast.grib2")
-//	fields, err := mgrib2.ReadBytes(data)
-func ReadBytes(data []byte) ([]*GRIB2, error) {
-	return Read(bytes.NewReader(data))
-}
-
-// ReadBytesWithOptions parses GRIB2 messages from a byte slice with options.
-//
-// This is a convenience wrapper around ReadWithOptions that wraps the byte slice
-// in a bytes.Reader to provide io.ReadSeeker functionality.
-func ReadBytesWithOptions(data []byte, opts ...ReadOption) ([]*GRIB2, error) {
-	return ReadWithOptions(bytes.NewReader(data), opts...)
 }
 
 // messageToGRIB2 converts an internal Message to a public GRIB2 struct.
