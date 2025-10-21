@@ -6,25 +6,24 @@ import (
 )
 
 func TestParseHRRRFile(t *testing.T) {
-	data, err := os.ReadFile("testdata/hrrr-iowa-subset.grib2")
+	data, err := os.ReadFile("testgribs/hrrr-iowa-subset.grib2")
 	if err != nil {
-		t.Skip("Test file not found")
+		t.Skip("Test file not found - run from repository root or place test file in testgribs/")
 	}
 
 	t.Logf("File size: %d bytes", len(data))
 
-	// Parse with skip errors (some templates not yet supported)
-	// Use sequential for now (parallel + skipErrors not yet implemented)
-	fields, err := ReadWithOptions(data, WithSequential(), WithSkipErrors())
+	// Parse all fields - Template 5.3 (complex packing) is now fully supported
+	fields, err := ReadWithOptions(data, WithSequential())
 	if err != nil {
 		t.Fatalf("Parse error: %v", err)
 	}
 
 	t.Logf("Parsed %d fields", len(fields))
 
-	// Verify we parsed a significant number of fields (96% of 708 total)
-	if len(fields) < 650 {
-		t.Errorf("Expected at least 650 fields, got %d", len(fields))
+	// Verify we parsed all 708 fields
+	if len(fields) != 708 {
+		t.Errorf("Expected 708 fields, got %d", len(fields))
 	}
 
 	if len(fields) > 0 {
