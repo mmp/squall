@@ -203,25 +203,68 @@ func ReadWithOptions(r io.ReadSeeker, opts ...ReadOption) ([]*GRIB2, error) {
 	}
 	wg.Wait()
 
-	// Phase 3: Convert messages to GRIB2 structs using cached coordinates
-	var fields []*GRIB2
+	// Phase 3: Convert messages to GRIB2 structs using cached coordinates (in parallel)
+	type result struct {
+		field *GRIB2
+		err   error
+		index int
+	}
+
+	// Count total messages to process
+	totalMessages := 0
+	for _, msgs := range gridToMessages {
+		totalMessages += len(msgs)
+	}
+
+	resultChan := make(chan result, totalMessages)
+	var decodeWg sync.WaitGroup
+
+	// Process all messages in parallel
+	messageIndex := 0
 	for key, msgs := range gridToMessages {
 		cache, ok := coordCache[key]
 		if !ok {
 			// Coordinates failed for this grid, skip these messages
+			messageIndex += len(msgs)
 			continue
 		}
 
 		for _, msg := range msgs {
-			field, err := messageToGRIB2WithCoords(msg, cache.latitudes, cache.longitudes)
-			if err != nil {
-				if config.skipErrors {
-					continue
-				}
-				return nil, fmt.Errorf("failed to convert message: %w", err)
-			}
+			decodeWg.Add(1)
+			idx := messageIndex
+			messageIndex++
 
-			fields = append(fields, field)
+			go func(m *Message, lats, lons []float32, i int) {
+				defer decodeWg.Done()
+				field, err := messageToGRIB2WithCoords(m, lats, lons)
+				resultChan <- result{field: field, err: err, index: i}
+			}(msg, cache.latitudes, cache.longitudes, idx)
+		}
+	}
+
+	// Wait for all decoding to complete
+	go func() {
+		decodeWg.Wait()
+		close(resultChan)
+	}()
+
+	// Collect results maintaining order
+	results := make([]*result, totalMessages)
+	for res := range resultChan {
+		if res.err != nil {
+			if !config.skipErrors {
+				return nil, fmt.Errorf("failed to convert message: %w", res.err)
+			}
+			continue
+		}
+		results[res.index] = &res
+	}
+
+	// Build final slice in order, skipping nils (errors that were skipped)
+	fields := make([]*GRIB2, 0, totalMessages)
+	for _, res := range results {
+		if res != nil && res.field != nil {
+			fields = append(fields, res.field)
 		}
 	}
 
