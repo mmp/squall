@@ -10,8 +10,8 @@ import (
 
 // ParseMgrib2 parses a GRIB2 file using the mgrib2 library (this implementation).
 //
-// Returns a map of field keys (parameter:level) to FieldData structures.
-func ParseMgrib2(gribFile string) (map[string]*FieldData, error) {
+// Returns an array of FieldData structures in message order.
+func ParseMgrib2(gribFile string) ([]*FieldData, error) {
 	// Read GRIB2 file
 	data, err := os.ReadFile(gribFile)
 	if err != nil {
@@ -26,13 +26,10 @@ func ParseMgrib2(gribFile string) (map[string]*FieldData, error) {
 		return nil, fmt.Errorf("mgrib2 parse failed: %v", err)
 	}
 
-	// Convert to FieldData map
-	fieldMap := make(map[string]*FieldData)
+	// Convert to FieldData array (preserving message order)
+	fieldArray := make([]*FieldData, 0, len(fields))
 
 	for _, field := range fields {
-		// Create field key using parameter name and level description
-		key := fmt.Sprintf("%s:%s", field.ParameterName, field.Level)
-
 		// TODO: Calculate verification time from forecast time
 		// For now, use reference time for both
 		verTime := field.ReferenceTime
@@ -48,8 +45,8 @@ func ParseMgrib2(gribFile string) (map[string]*FieldData, error) {
 			Source:     "mgrib2",
 		}
 
-		fieldMap[key] = fd
+		fieldArray = append(fieldArray, fd)
 	}
 
-	return fieldMap, nil
+	return fieldArray, nil
 }

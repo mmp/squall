@@ -10,8 +10,8 @@ import (
 
 // ParseGoGrib2 parses a GRIB2 file using the go-grib2 library.
 //
-// Returns a map of field keys (name:level) to FieldData structures.
-func ParseGoGrib2(gribFile string) (map[string]*FieldData, error) {
+// Returns an array of FieldData structures in message order.
+func ParseGoGrib2(gribFile string) ([]*FieldData, error) {
 	// Read GRIB2 file
 	data, err := os.ReadFile(gribFile)
 	if err != nil {
@@ -24,13 +24,10 @@ func ParseGoGrib2(gribFile string) (map[string]*FieldData, error) {
 		return nil, fmt.Errorf("go-grib2 parse failed: %v", err)
 	}
 
-	// Convert to FieldData map
-	fieldMap := make(map[string]*FieldData)
+	// Convert to FieldData array (preserving message order)
+	fieldArray := make([]*FieldData, 0, len(gribs))
 
 	for _, grib := range gribs {
-		// Create field key
-		key := fmt.Sprintf("%s:%s", grib.Name, grib.Level)
-
 		// Extract coordinates and values
 		latitudes := make([]float64, len(grib.Values))
 		longitudes := make([]float64, len(grib.Values))
@@ -53,8 +50,8 @@ func ParseGoGrib2(gribFile string) (map[string]*FieldData, error) {
 			Source:     "go-grib2",
 		}
 
-		fieldMap[key] = fd
+		fieldArray = append(fieldArray, fd)
 	}
 
-	return fieldMap, nil
+	return fieldArray, nil
 }
