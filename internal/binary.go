@@ -47,9 +47,22 @@ func (r *Reader) Uint16() (uint16, error) {
 }
 
 // Int16 reads a signed 16-bit big-endian integer.
+// GRIB2 uses sign-magnitude representation, not two's complement:
+// - Bit 15 (0x8000) is the sign bit (1 = negative, 0 = positive)
+// - Bits 0-14 (0x7FFF) are the magnitude
 func (r *Reader) Int16() (int16, error) {
 	val, err := r.Uint16()
-	return int16(val), err
+	if err != nil {
+		return 0, err
+	}
+
+	// Check sign bit (bit 15)
+	if (val & 0x8000) != 0 {
+		// Negative: extract magnitude from bits 0-14 and negate
+		return -int16(val & 0x7FFF), nil
+	}
+	// Positive: use value as-is
+	return int16(val), nil
 }
 
 // Uint32 reads an unsigned 32-bit big-endian integer.

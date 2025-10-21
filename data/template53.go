@@ -276,9 +276,8 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 	bitReader.Align()
 
 	// Unpack data values for each group
-	// Total values = ndata - number of first values
-	numUnpackedVals := int(ndata) - len(firstVals)
-	unpackedVals := make([]int32, numUnpackedVals)
+	// Unpack ALL ndata values (firstVals are not separate, they're part of the packed data)
+	unpackedVals := make([]int32, ndata)
 
 	idx := 0
 	for i := uint32(0); i < t.NumberOfGroups; i++ {
@@ -287,7 +286,7 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 		groupMin := groupMinVals[i]
 
 		for j := uint32(0); j < groupLength; j++ {
-			if idx >= numUnpackedVals {
+			if idx >= int(ndata) {
 				break
 			}
 
@@ -305,19 +304,16 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 		}
 	}
 
-	// Combine first values and unpacked values
-	allVals := make([]int32, len(firstVals)+len(unpackedVals))
-	copy(allVals, firstVals)
-	copy(allVals[len(firstVals):], unpackedVals)
-
 	// Reverse spatial differencing
+	// The firstVals and minVal are used as parameters for the reversal algorithm,
+	// not as separate data points
 	var finalVals []int32
 	if t.SpatialDiffOrder == 1 {
-		finalVals = t.reverseSpatialDifferencing1(allVals, minVal)
+		finalVals = t.reverseSpatialDifferencing1(unpackedVals, firstVals, minVal)
 	} else if t.SpatialDiffOrder == 2 {
-		finalVals = t.reverseSpatialDifferencing2(allVals, minVal)
+		finalVals = t.reverseSpatialDifferencing2(unpackedVals, firstVals, minVal)
 	} else {
-		finalVals = allVals
+		finalVals = unpackedVals
 	}
 
 	// Apply scaling and convert to float64
@@ -334,13 +330,16 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 //
 // The min_val offset is added at each step per the GRIB2 specification
 // and reference implementations (wgrib2, go-grib2).
-func (t *Template53) reverseSpatialDifferencing1(diffVals []int32, minVal int32) []int32 {
+// The firstVals array contains the initial undifferenced reference value(s).
+func (t *Template53) reverseSpatialDifferencing1(diffVals []int32, firstVals []int32, minVal int32) []int32 {
 	if len(diffVals) == 0 {
 		return diffVals
 	}
 
 	vals := make([]int32, len(diffVals))
-	vals[0] = diffVals[0] // First value is the reference, unchanged
+
+	// First value is the reference from extra descriptors (not from packed data)
+	vals[0] = firstVals[0]
 
 	for i := 1; i < len(diffVals); i++ {
 		vals[i] = vals[i-1] + diffVals[i] + minVal
@@ -357,14 +356,16 @@ func (t *Template53) reverseSpatialDifferencing1(diffVals []int32, minVal int32)
 //
 // The min_val offset is added at each step per the GRIB2 specification
 // and reference implementations (wgrib2, go-grib2).
-func (t *Template53) reverseSpatialDifferencing2(diffVals []int32, minVal int32) []int32 {
+// The firstVals array contains the initial two undifferenced reference values.
+func (t *Template53) reverseSpatialDifferencing2(diffVals []int32, firstVals []int32, minVal int32) []int32 {
 	if len(diffVals) < 2 {
 		return diffVals
 	}
 
 	vals := make([]int32, len(diffVals))
-	vals[0] = diffVals[0] // First value is the reference, unchanged
-	vals[1] = diffVals[1] // Second value is the reference, unchanged
+	// First two values are the references from extra descriptors (not from packed data)
+	vals[0] = firstVals[0]
+	vals[1] = firstVals[1]
 
 	for i := 2; i < len(diffVals); i++ {
 		vals[i] = diffVals[i] + 2*vals[i-1] - vals[i-2] + minVal
@@ -415,6 +416,7 @@ func (t *Template53) applyScalingWithBitmap(packedValues []int32, bitmap []bool)
 // applyScaling applies the scaling formula to a packed value.
 //
 // Formula: value = (R + X * 2^E) / 10^D
+// This is the same formula as Template 5.0, applied after spatial differencing reversal.
 func (t *Template53) applyScaling(packedValue int32) float64 {
 	// Start with reference value
 	value := float64(t.ReferenceValue)

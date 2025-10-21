@@ -38,13 +38,26 @@ func makeSection5Template50Data(numDataValues uint32, refValue float32, binarySc
 	data[13] = byte(refBits >> 8)
 	data[14] = byte(refBits)
 
-	// Binary scale factor (int16)
-	data[15] = byte(binaryScale >> 8)
-	data[16] = byte(binaryScale)
+	// Binary scale factor (int16 sign-magnitude)
+	// GRIB2 uses sign-magnitude: bit 15 = sign, bits 0-14 = magnitude
+	var bsBytes uint16
+	if binaryScale < 0 {
+		bsBytes = 0x8000 | uint16(-binaryScale)
+	} else {
+		bsBytes = uint16(binaryScale)
+	}
+	data[15] = byte(bsBytes >> 8)
+	data[16] = byte(bsBytes)
 
-	// Decimal scale factor (int16)
-	data[17] = byte(decimalScale >> 8)
-	data[18] = byte(decimalScale)
+	// Decimal scale factor (int16 sign-magnitude)
+	var dsBytes uint16
+	if decimalScale < 0 {
+		dsBytes = 0x8000 | uint16(-decimalScale)
+	} else {
+		dsBytes = uint16(decimalScale)
+	}
+	data[17] = byte(dsBytes >> 8)
+	data[18] = byte(dsBytes)
 
 	// Bits per value
 	data[19] = bitsPerValue
