@@ -3,8 +3,10 @@ package mgrib2
 import (
 	"fmt"
 	"io"
+	"sync"
 	"time"
 
+	"github.com/mmp/mgrib2/grid"
 	"github.com/mmp/mgrib2/product"
 	"github.com/mmp/mgrib2/tables"
 )
@@ -77,6 +79,43 @@ func Read(r io.ReadSeeker) ([]*GRIB2, error) {
 	return ReadWithOptions(r)
 }
 
+// gridKey uniquely identifies a grid configuration for coordinate caching
+type gridKey struct {
+	templateNumber uint16
+	numDataPoints  uint32
+	nx, ny         uint32
+}
+
+// createGridKey creates a unique key for a grid
+func createGridKey(msg *Message) (gridKey, bool) {
+	if msg.Section3 == nil || msg.Section3.Grid == nil {
+		return gridKey{}, false
+	}
+
+	var nx, ny uint32
+	switch g := msg.Section3.Grid.(type) {
+	case *grid.LambertConformalGrid:
+		nx, ny = g.Nx, g.Ny
+	case *grid.LatLonGrid:
+		nx, ny = g.Ni, g.Nj
+	default:
+		return gridKey{}, false
+	}
+
+	return gridKey{
+		templateNumber: msg.Section3.TemplateNumber,
+		numDataPoints:  msg.Section3.NumDataPoints,
+		nx:             nx,
+		ny:             ny,
+	}, true
+}
+
+// coordinateCache stores pre-computed coordinates for unique grids
+type coordinateCache struct {
+	latitudes  []float32
+	longitudes []float32
+}
+
 // ReadWithOptions parses GRIB2 messages with configuration options.
 //
 // Options can control parallelism, apply filters, or configure other
@@ -117,26 +156,96 @@ func ReadWithOptions(r io.ReadSeeker, opts ...ReadOption) ([]*GRIB2, error) {
 		return nil, err
 	}
 
-	// Convert to GRIB2 structs
-	var fields []*GRIB2
+	// Phase 1: Identify unique grids
+	gridToMessages := make(map[gridKey][]*Message)
+	uniqueGrids := make(map[gridKey]*Message) // Keep one example of each grid
+
 	for _, msg := range messages {
-		// Apply filters
+		// Apply filters first
 		if !config.filter(msg) {
 			continue
 		}
 
-		field, err := messageToGRIB2(msg)
-		if err != nil {
-			if config.skipErrors {
-				continue
-			}
-			return nil, fmt.Errorf("failed to convert message: %w", err)
+		key, ok := createGridKey(msg)
+		if !ok {
+			continue
 		}
 
-		fields = append(fields, field)
+		gridToMessages[key] = append(gridToMessages[key], msg)
+		if _, exists := uniqueGrids[key]; !exists {
+			uniqueGrids[key] = msg
+		}
+	}
+
+	// Phase 2: Compute coordinates for unique grids in parallel
+	coordCache := make(map[gridKey]*coordinateCache)
+	var cacheMutex sync.Mutex
+	var wg sync.WaitGroup
+
+	for key, exampleMsg := range uniqueGrids {
+		wg.Add(1)
+		go func(k gridKey, msg *Message) {
+			defer wg.Done()
+
+			lats, lons, err := msg.Coordinates()
+			if err != nil {
+				// Skip this grid if coordinates fail
+				return
+			}
+
+			cacheMutex.Lock()
+			coordCache[k] = &coordinateCache{
+				latitudes:  lats,
+				longitudes: lons,
+			}
+			cacheMutex.Unlock()
+		}(key, exampleMsg)
+	}
+	wg.Wait()
+
+	// Phase 3: Convert messages to GRIB2 structs using cached coordinates
+	var fields []*GRIB2
+	for key, msgs := range gridToMessages {
+		cache, ok := coordCache[key]
+		if !ok {
+			// Coordinates failed for this grid, skip these messages
+			continue
+		}
+
+		for _, msg := range msgs {
+			field, err := messageToGRIB2WithCoords(msg, cache.latitudes, cache.longitudes)
+			if err != nil {
+				if config.skipErrors {
+					continue
+				}
+				return nil, fmt.Errorf("failed to convert message: %w", err)
+			}
+
+			fields = append(fields, field)
+		}
 	}
 
 	return fields, nil
+}
+
+// messageToGRIB2WithCoords converts a Message to GRIB2 using pre-computed coordinates
+func messageToGRIB2WithCoords(msg *Message, lats, lons []float32) (*GRIB2, error) {
+	// Decode data
+	data, err := msg.DecodeData()
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode data: %w", err)
+	}
+
+	// Build GRIB2 struct using provided coordinates
+	g2 := &GRIB2{
+		Data:       data,
+		Latitudes:  lats,
+		Longitudes: lons,
+		NumPoints:  len(data),
+		message:    msg,
+	}
+
+	return populateMetadata(g2, msg), nil
 }
 
 // messageToGRIB2 converts an internal Message to a public GRIB2 struct.
@@ -162,6 +271,11 @@ func messageToGRIB2(msg *Message) (*GRIB2, error) {
 		message:    msg,
 	}
 
+	return populateMetadata(g2, msg), nil
+}
+
+// populateMetadata extracts metadata from a Message into a GRIB2 struct
+func populateMetadata(g2 *GRIB2, msg *Message) *GRIB2 {
 	// Extract metadata
 	if msg.Section0 != nil {
 		g2.Discipline = msg.Section0.DisciplineName()
@@ -203,7 +317,7 @@ func messageToGRIB2(msg *Message) (*GRIB2, error) {
 		}
 	}
 
-	return g2, nil
+	return g2
 }
 
 // String returns a human-readable summary of the field.
