@@ -3,6 +3,9 @@ package mgrib2
 import (
 	"fmt"
 	"time"
+
+	"github.com/mmp/mgrib2/product"
+	"github.com/mmp/mgrib2/tables"
 )
 
 // GRIB2 represents a single meteorological field from a GRIB2 message.
@@ -173,14 +176,27 @@ func messageToGRIB2(msg *Message) (*GRIB2, error) {
 	}
 
 	if msg.Section4 != nil && msg.Section4.Product != nil {
-		g2.ParameterCategory = fmt.Sprintf("Category %d", msg.Section4.Product.GetParameterCategory())
-		g2.ParameterNumber = fmt.Sprintf("Number %d", msg.Section4.Product.GetParameterNumber())
-		g2.ParameterName = fmt.Sprintf("Parameter %d.%d",
-			msg.Section4.Product.GetParameterCategory(),
-			msg.Section4.Product.GetParameterNumber())
-	}
+		discipline := int(msg.Section0.Discipline)
+		category := msg.Section4.Product.GetParameterCategory()
+		number := msg.Section4.Product.GetParameterNumber()
 
-	// TODO: Extract level information from Section 4 template
+		// Use table lookups for human-readable names
+		g2.ParameterCategory = tables.GetParameterCategoryName(discipline, int(category))
+		g2.ParameterNumber = fmt.Sprintf("%d", number)
+		g2.ParameterName = tables.GetParameterName(discipline, int(category), int(number))
+
+		// Extract level information from product template
+		if template, ok := msg.Section4.Product.(*product.Template40); ok {
+			levelType := int(template.FirstSurfaceType)
+			g2.Level = tables.GetLevelName(levelType)
+			g2.LevelValue = float64(template.FirstSurfaceValue)
+
+			// Format level description with value
+			if template.FirstSurfaceValue != 0 {
+				g2.Level = fmt.Sprintf("%s %g", g2.Level, g2.LevelValue)
+			}
+		}
+	}
 
 	return g2, nil
 }
