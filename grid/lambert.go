@@ -31,12 +31,17 @@ type LambertConformalGrid struct {
 
 // ParseLambertConformalGrid parses Grid Definition Template 3.30.
 func ParseLambertConformalGrid(data []byte) (*LambertConformalGrid, error) {
-	if len(data) < 69 {
-		return nil, fmt.Errorf("template 3.30 requires at least 69 bytes, got %d", len(data))
+	if len(data) < 65 {
+		return nil, fmt.Errorf("template 3.30 requires at least 65 bytes, got %d", len(data))
 	}
 
-	r := internal.NewReader(data[14:]) // Skip to template-specific data
+	r := internal.NewReader(data)
 
+	// Skip shape of earth (1 byte) and related parameters (15 bytes)
+	// Following same pattern as LatLonGrid
+	r.Skip(16)
+
+	// Read grid dimensions
 	nx, _ := r.Uint32()
 	ny, _ := r.Uint32()
 	la1, _ := r.Int32()

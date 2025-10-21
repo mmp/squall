@@ -85,7 +85,7 @@ func ParseSection3(data []byte) (*Section3, error) {
 
 	case 30:
 		// Template 3.30: Lambert Conformal
-		parsedGrid, err = grid.ParseLambertConformalGrid(data) // Pass full section data
+		parsedGrid, err = grid.ParseLambertConformalGrid(templateData)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse Lambert Conformal grid: %w", err)
 		}
