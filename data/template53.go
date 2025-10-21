@@ -391,8 +391,25 @@ func (t *Template53) reverseSpatialDifferencing2(diffVals []int32, firstVals []i
 // applyScalingWithoutBitmap applies scaling when all values are valid.
 func (t *Template53) applyScalingWithoutBitmap(packedValues []int32) []float32 {
 	values := make([]float32, len(packedValues))
+
+	// Pre-compute scale factors once for the entire dataset
+	binaryScale := float32(math.Pow(2.0, float64(t.BinaryScaleFactor)))
+	var decimalScale float32 = 1.0
+	if t.DecimalScaleFactor != 0 {
+		decimalScale = float32(math.Pow(10.0, float64(t.DecimalScaleFactor)))
+	}
+	refValue := float32(t.ReferenceValue)
+
+	// Apply scaling to all values using pre-computed factors
 	for i, packed := range packedValues {
-		values[i] = t.applyScaling(packed)
+		value := refValue
+		if packed != 0 {
+			value += float32(packed) * binaryScale
+		}
+		if t.DecimalScaleFactor != 0 {
+			value /= decimalScale
+		}
+		values[i] = value
 	}
 	return values
 }
@@ -407,12 +424,28 @@ func (t *Template53) applyScalingWithBitmap(packedValues []int32, bitmap []bool)
 	values := make([]float32, len(bitmap))
 	packedIdx := 0
 
+	// Pre-compute scale factors once for the entire dataset
+	binaryScale := float32(math.Pow(2.0, float64(t.BinaryScaleFactor)))
+	var decimalScale float32 = 1.0
+	if t.DecimalScaleFactor != 0 {
+		decimalScale = float32(math.Pow(10.0, float64(t.DecimalScaleFactor)))
+	}
+	refValue := float32(t.ReferenceValue)
+
 	for i := range bitmap {
 		if bitmap[i] {
 			if packedIdx >= len(packedValues) {
 				return nil, fmt.Errorf("bitmap indicates more valid points than packed values available")
 			}
-			values[i] = t.applyScaling(packedValues[packedIdx])
+			packed := packedValues[packedIdx]
+			value := refValue
+			if packed != 0 {
+				value += float32(packed) * binaryScale
+			}
+			if t.DecimalScaleFactor != 0 {
+				value /= decimalScale
+			}
+			values[i] = value
 			packedIdx++
 		} else {
 			values[i] = 9.999e20 // Missing value
