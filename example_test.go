@@ -4,19 +4,22 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/mmp/mgrib2"
 )
 
-// Example_basic demonstrates basic usage of the GRIB2 library.
+// Example_basic demonstrates basic usage of the GRIB2 library with streaming.
 func Example_basic() {
-	// Read GRIB2 data from bytes (typically from a file)
-	// data, _ := os.ReadFile("forecast.grib2")
-	data := []byte{} // placeholder for example
+	// Open GRIB2 file (not shown: error handling for demonstration)
+	// file, _ := os.Open("forecast.grib2")
+	// defer file.Close()
 
-	// Parse all messages
-	fields, err := mgrib2.Read(data)
+	// For this example, we'll use a placeholder
+	// In real code, you would use: fields, err := mgrib2.Read(file)
+	data := []byte{} // placeholder
+	fields, err := mgrib2.ReadBytes(data)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -32,12 +35,31 @@ func Example_basic() {
 	}
 }
 
+// Example_streaming demonstrates reading from a file without loading it all into memory.
+func Example_streaming() {
+	// Open GRIB2 file (using os.File which implements io.ReadSeeker)
+	file, err := os.Open("forecast.grib2")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	// Parse messages directly from the file stream
+	// Individual messages are read into memory as needed, but not the entire file
+	fields, err := mgrib2.Read(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("Parsed %d fields from stream\n", len(fields))
+}
+
 // Example_parallel demonstrates parallel parsing with custom worker count.
 func Example_parallel() {
 	data := []byte{} // placeholder
 
 	// Use 4 workers for parallel parsing
-	fields, err := mgrib2.ReadWithOptions(data,
+	fields, err := mgrib2.ReadBytesWithOptions(data,
 		mgrib2.WithWorkers(4),
 	)
 	if err != nil {
@@ -52,7 +74,7 @@ func Example_filtering() {
 	data := []byte{} // placeholder
 
 	// Only read temperature fields (category 0)
-	fields, err := mgrib2.ReadWithOptions(data,
+	fields, err := mgrib2.ReadBytesWithOptions(data,
 		mgrib2.WithParameterCategory(0),
 	)
 	if err != nil {
@@ -72,7 +94,7 @@ func Example_context() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	fields, err := mgrib2.ReadWithOptions(data,
+	fields, err := mgrib2.ReadBytesWithOptions(data,
 		mgrib2.WithContext(ctx),
 	)
 	if err != nil {
@@ -86,7 +108,7 @@ func Example_context() {
 func Example_coordinates() {
 	data := []byte{} // placeholder
 
-	fields, err := mgrib2.Read(data)
+	fields, err := mgrib2.ReadBytes(data)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -137,7 +159,7 @@ func Example_customFilter() {
 		return true
 	}
 
-	fields, err := mgrib2.ReadWithOptions(data,
+	fields, err := mgrib2.ReadBytesWithOptions(data,
 		mgrib2.WithFilter(filter),
 	)
 	if err != nil {
@@ -155,7 +177,7 @@ func Example_multipleOptions() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	fields, err := mgrib2.ReadWithOptions(data,
+	fields, err := mgrib2.ReadBytesWithOptions(data,
 		mgrib2.WithWorkers(8),
 		mgrib2.WithContext(ctx),
 		mgrib2.WithParameterCategory(0), // Temperature

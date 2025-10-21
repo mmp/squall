@@ -1,7 +1,9 @@
 package mgrib2
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/mmp/mgrib2/product"
@@ -49,19 +51,21 @@ type GRIB2 struct {
 	message *Message
 }
 
-// Read parses GRIB2 messages from a byte slice.
+// Read parses GRIB2 messages from an io.ReadSeeker.
 //
 // This is the main entry point for the library. It parses all GRIB2 messages
-// in the input data and returns them as GRIB2 structs with decoded data and
+// in the input stream and returns them as GRIB2 structs with decoded data and
 // coordinates.
 //
-// Messages are parsed in parallel for performance. Use ReadWithOptions to
-// control parallelism or apply filters.
+// Messages are parsed in parallel for performance. Individual messages are
+// read into memory as needed, but the entire file is not loaded at once.
+// Use ReadWithOptions to control parallelism or apply filters.
 //
 // Example:
 //
-//	data, _ := os.ReadFile("forecast.grib2")
-//	fields, err := mgrib2.Read(data)
+//	file, _ := os.Open("forecast.grib2")
+//	defer file.Close()
+//	fields, err := mgrib2.Read(file)
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
@@ -70,8 +74,8 @@ type GRIB2 struct {
 //	    fmt.Printf("%s at %s: %d points\n",
 //	        field.ParameterName, field.Level, field.NumPoints)
 //	}
-func Read(data []byte) ([]*GRIB2, error) {
-	return ReadWithOptions(data)
+func Read(r io.ReadSeeker) ([]*GRIB2, error) {
+	return ReadWithOptions(r)
 }
 
 // ReadWithOptions parses GRIB2 messages with configuration options.
@@ -81,11 +85,13 @@ func Read(data []byte) ([]*GRIB2, error) {
 //
 // Example:
 //
-//	fields, err := mgrib2.ReadWithOptions(data,
+//	file, _ := os.Open("forecast.grib2")
+//	defer file.Close()
+//	fields, err := mgrib2.ReadWithOptions(file,
 //	    WithWorkers(4),
 //	    WithParameter("Temperature"),
 //	)
-func ReadWithOptions(data []byte, opts ...ReadOption) ([]*GRIB2, error) {
+func ReadWithOptions(r io.ReadSeeker, opts ...ReadOption) ([]*GRIB2, error) {
 	// Apply options
 	config := defaultReadConfig()
 	for _, opt := range opts {
@@ -98,14 +104,14 @@ func ReadWithOptions(data []byte, opts ...ReadOption) ([]*GRIB2, error) {
 
 	if config.sequential {
 		if config.skipErrors {
-			messages, err = ParseMessagesSequentialSkipErrors(data)
+			messages, err = ParseMessagesFromStreamSequentialSkipErrors(r)
 		} else {
-			messages, err = ParseMessagesSequential(data)
+			messages, err = ParseMessagesFromStreamSequential(r)
 		}
 	} else if config.ctx != nil {
-		messages, err = ParseMessagesWithContext(config.ctx, data, config.workers)
+		messages, err = ParseMessagesFromStreamWithContext(config.ctx, r, config.workers)
 	} else {
-		messages, err = ParseMessagesWithWorkers(data, config.workers)
+		messages, err = ParseMessagesFromStreamWithWorkers(r, config.workers)
 	}
 
 	if err != nil && !config.skipErrors {
@@ -132,6 +138,27 @@ func ReadWithOptions(data []byte, opts ...ReadOption) ([]*GRIB2, error) {
 	}
 
 	return fields, nil
+}
+
+// ReadBytes parses GRIB2 messages from a byte slice.
+//
+// This is a convenience wrapper around Read that wraps the byte slice
+// in a bytes.Reader to provide io.ReadSeeker functionality.
+//
+// Example:
+//
+//	data, _ := os.ReadFile("forecast.grib2")
+//	fields, err := mgrib2.ReadBytes(data)
+func ReadBytes(data []byte) ([]*GRIB2, error) {
+	return Read(bytes.NewReader(data))
+}
+
+// ReadBytesWithOptions parses GRIB2 messages from a byte slice with options.
+//
+// This is a convenience wrapper around ReadWithOptions that wraps the byte slice
+// in a bytes.Reader to provide io.ReadSeeker functionality.
+func ReadBytesWithOptions(data []byte, opts ...ReadOption) ([]*GRIB2, error) {
+	return ReadWithOptions(bytes.NewReader(data), opts...)
 }
 
 // messageToGRIB2 converts an internal Message to a public GRIB2 struct.

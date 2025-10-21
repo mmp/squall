@@ -12,14 +12,15 @@ import (
 //
 // Returns an array of FieldData structures in message order.
 func ParseMgrib2(gribFile string) ([]*FieldData, error) {
-	// Read GRIB2 file
-	data, err := os.ReadFile(gribFile)
+	// Open GRIB2 file
+	file, err := os.Open(gribFile)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read file: %v", err)
+		return nil, fmt.Errorf("failed to open file: %v", err)
 	}
+	defer file.Close()
 
 	// Parse with mgrib2 (use sequential + skip errors for robustness)
-	fields, err := mgrib2.ReadWithOptions(data,
+	fields, err := mgrib2.ReadWithOptions(file,
 		mgrib2.WithSequential(),
 		mgrib2.WithSkipErrors())
 	if err != nil {
