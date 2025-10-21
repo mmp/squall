@@ -159,11 +159,10 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 
 	bitReader := internal.NewBitReader(packedData)
 
-	// Calculate number of values including spatial difference references
+	// NumberOfDataValues represents the count of packed values in the data section.
+	// When a bitmap is present, this is the number of defined (non-missing) values,
+	// not the total grid size. The bitmap itself determines the total grid size.
 	ndata := t.NumberOfDataValues
-	if bitmap != nil {
-		ndata = uint32(len(bitmap))
-	}
 
 	// Read spatial difference reference values and min_val
 	// For Template 5.3 with spatial differencing:
@@ -215,6 +214,9 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 		}
 		groupMinVals[i] = int32(val)
 	}
+	// Align to byte boundary after group reference values
+	// The GRIB2 format packs each metadata section into rounded byte boundaries
+	bitReader.Align()
 
 	// Unpack group widths
 	groupWidths := make([]uint8, t.NumberOfGroups)
@@ -232,13 +234,15 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 			groupWidths[i] = t.ReferenceGroupWidth
 		}
 	}
+	// Align to byte boundary after group widths
+	bitReader.Align()
 
 	// Unpack group lengths
 	// According to GRIB2 spec and reference implementations:
 	// - Group length metadata for first (ngroups-1) groups is encoded in the bitstream
 	// - The last group's length is given directly by TrueLengthLastGroup template field
-	// - The bitstream may or may not contain space for the last group's length
-	//   (implementation-dependent)
+	// - The bitstream ALLOCATES space for all ngroups worth of lengths, but only
+	//   ngroups-1 are populated (the last one's space is unused)
 	groupLengths := make([]uint32, t.NumberOfGroups)
 	if t.NumBitsGroupLength > 0 {
 		// Strategy: Read first (ngroups-1) lengths, then use TrueLengthLastGroup for last
@@ -253,6 +257,12 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 		if t.NumberOfGroups > 0 {
 			groupLengths[t.NumberOfGroups-1] = t.TrueLengthLastGroup
 		}
+		// Skip the unused space allocated for the last group's length
+		// The GRIB2 format allocates space for all ngroups lengths, even though
+		// only ngroups-1 are actually encoded (last comes from TrueLengthLastGroup)
+		if err := bitReader.Skip(int(t.NumBitsGroupLength)); err != nil {
+			return nil, fmt.Errorf("failed to skip unused last group length space: %w", err)
+		}
 	} else {
 		// All groups use reference length, except last group
 		for i := uint32(0); i < t.NumberOfGroups; i++ {
@@ -262,15 +272,13 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float64, error)
 			groupLengths[t.NumberOfGroups-1] = t.TrueLengthLastGroup
 		}
 	}
+	// Align to byte boundary after group lengths
+	bitReader.Align()
 
 	// Unpack data values for each group
 	// Total values = ndata - number of first values
 	numUnpackedVals := int(ndata) - len(firstVals)
 	unpackedVals := make([]int32, numUnpackedVals)
-
-	// Note: Some implementations align to byte boundary here before reading packed values.
-	// However, GRIB2 spec indicates continuous bit packing, so we don't align.
-	// If issues persist, try: bitReader.Align()
 
 	idx := 0
 	for i := uint32(0); i < t.NumberOfGroups; i++ {
