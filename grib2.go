@@ -3,6 +3,7 @@ package mgrib2
 import (
 	"fmt"
 	"io"
+	"runtime"
 	"sync"
 	"time"
 
@@ -219,7 +220,11 @@ func ReadWithOptions(r io.ReadSeeker, opts ...ReadOption) ([]*GRIB2, error) {
 	resultChan := make(chan result, totalMessages)
 	var decodeWg sync.WaitGroup
 
-	// Process all messages in parallel
+	// Limit parallelism to 2 * NumCPU to reduce memory pressure
+	maxWorkers := runtime.NumCPU() * 2
+	semaphore := make(chan struct{}, maxWorkers)
+
+	// Process all messages with bounded parallelism
 	messageIndex := 0
 	for key, msgs := range gridToMessages {
 		cache, ok := coordCache[key]
@@ -234,8 +239,12 @@ func ReadWithOptions(r io.ReadSeeker, opts ...ReadOption) ([]*GRIB2, error) {
 			idx := messageIndex
 			messageIndex++
 
+			// Acquire semaphore slot (blocks if maxWorkers goroutines are active)
+			semaphore <- struct{}{}
+
 			go func(m *Message, lats, lons []float32, i int) {
 				defer decodeWg.Done()
+				defer func() { <-semaphore }() // Release semaphore slot
 				field, err := messageToGRIB2WithCoords(m, lats, lons)
 				resultChan <- result{field: field, err: err, index: i}
 			}(msg, cache.latitudes, cache.longitudes, idx)

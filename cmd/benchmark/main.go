@@ -44,7 +44,7 @@ func formatBytes(b uint64) string {
 	return fmt.Sprintf("%.2f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
 }
 
-func benchmarkMgrib2(filename string, cpuprofile string) error {
+func benchmarkMgrib2(filename string, cpuprofile string, memprofile string) error {
 	fmt.Printf("\n=== mgrib2: %s ===\n", filename)
 
 	// Force GC before starting
@@ -110,11 +110,23 @@ func benchmarkMgrib2(filename string, cpuprofile string) error {
 	if cpuprofile != "" {
 		fmt.Printf("CPU profile written to: %s\n", cpuprofile)
 	}
+	if memprofile != "" {
+		f, err := os.Create(memprofile)
+		if err != nil {
+			return fmt.Errorf("could not create memory profile: %w", err)
+		}
+		defer f.Close()
+		runtime.GC() // get up-to-date statistics
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			return fmt.Errorf("could not write memory profile: %w", err)
+		}
+		fmt.Printf("Memory profile written to: %s\n", memprofile)
+	}
 
 	return nil
 }
 
-func benchmarkGoGrib2(filename string, cpuprofile string) error {
+func benchmarkGoGrib2(filename string, cpuprofile string, memprofile string) error{
 	fmt.Printf("\n=== go-grib2: %s ===\n", filename)
 
 	// Force GC before starting
@@ -195,6 +207,18 @@ func benchmarkGoGrib2(filename string, cpuprofile string) error {
 	if cpuprofile != "" {
 		fmt.Printf("CPU profile written to: %s\n", cpuprofile)
 	}
+	if memprofile != "" {
+		f, err := os.Create(memprofile)
+		if err != nil {
+			return fmt.Errorf("could not create memory profile: %w", err)
+		}
+		defer f.Close()
+		runtime.GC() // get up-to-date statistics
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			return fmt.Errorf("could not write memory profile: %w", err)
+		}
+		fmt.Printf("Memory profile written to: %s\n", memprofile)
+	}
 
 	return nil
 }
@@ -202,12 +226,15 @@ func benchmarkGoGrib2(filename string, cpuprofile string) error {
 func main() {
 	// Define flags
 	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to `file` (separate files for mgrib2 and go-grib2)")
+	memprofile := flag.String("memprofile", "", "write memory profile to `file` (separate files for mgrib2 and go-grib2)")
 	flag.Parse()
 
 	if flag.NArg() < 1 {
-		fmt.Println("Usage: benchmark [-cpuprofile file] <grib2-file>")
+		fmt.Println("Usage: benchmark [-cpuprofile file] [-memprofile file] <grib2-file>")
 		fmt.Println("  -cpuprofile string")
 		fmt.Println("        write cpu profiles to files (will create <file>.mgrib2 and <file>.gogrib2)")
+		fmt.Println("  -memprofile string")
+		fmt.Println("        write memory profiles to files (will create <file>.mgrib2 and <file>.gogrib2)")
 		os.Exit(1)
 	}
 
@@ -224,15 +251,22 @@ func main() {
 	fmt.Printf("File size: %s\n", formatBytes(uint64(info.Size())))
 
 	// Determine profile file names
-	mgrib2Profile := ""
-	gogrib2Profile := ""
+	mgrib2CPUProfile := ""
+	gogrib2CPUProfile := ""
 	if *cpuprofile != "" {
-		mgrib2Profile = *cpuprofile + ".mgrib2"
-		gogrib2Profile = *cpuprofile + ".gogrib2"
+		mgrib2CPUProfile = *cpuprofile + ".mgrib2"
+		gogrib2CPUProfile = *cpuprofile + ".gogrib2"
+	}
+
+	mgrib2MemProfile := ""
+	gogrib2MemProfile := ""
+	if *memprofile != "" {
+		mgrib2MemProfile = *memprofile + ".mgrib2"
+		gogrib2MemProfile = *memprofile + ".gogrib2"
 	}
 
 	// Run mgrib2 benchmark
-	if err := benchmarkMgrib2(filename, mgrib2Profile); err != nil {
+	if err := benchmarkMgrib2(filename, mgrib2CPUProfile, mgrib2MemProfile); err != nil {
 		fmt.Printf("mgrib2 error: %v\n", err)
 	}
 
@@ -242,7 +276,7 @@ func main() {
 	time.Sleep(1 * time.Second)
 
 	// Run go-grib2 benchmark
-	if err := benchmarkGoGrib2(filename, gogrib2Profile); err != nil {
+	if err := benchmarkGoGrib2(filename, gogrib2CPUProfile, gogrib2MemProfile); err != nil {
 		fmt.Printf("go-grib2 error: %v\n", err)
 	}
 }
