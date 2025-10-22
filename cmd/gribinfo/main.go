@@ -377,9 +377,9 @@ func printDataValues(data []float32, ni int) {
 		colsToPrint = maxColsToPrint
 	}
 
-	for j := 0; j < rowsToPrint; j++ {
+	for j := range rowsToPrint {
 		fmt.Printf("  Row %3d: ", j)
-		for i := 0; i < colsToPrint; i++ {
+		for i := range colsToPrint {
 			idx := j*ni + i
 			if idx < len(data) {
 				val := data[idx]

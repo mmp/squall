@@ -189,7 +189,7 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float32, error)
 		numOctets := int(t.NumOctetsExtraDescriptors)
 
 		// Read first reference values (stored as bytes, not bit-packed)
-		for i := 0; i < numFirstVals; i++ {
+		for i := range numFirstVals {
 			val, err := bitReader.ReadBytes(numOctets)
 			if err != nil {
 				return nil, fmt.Errorf("failed to read first value %d: %w", i, err)

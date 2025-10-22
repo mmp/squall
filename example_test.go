@@ -121,7 +121,7 @@ func Example_coordinates() {
 	field := fields[0]
 
 	// Access coordinates for each grid point
-	for i := 0; i < field.NumPoints; i++ {
+	for i := range field.NumPoints {
 		lat := field.Latitudes[i]
 		lon := field.Longitudes[i]
 		value := field.Data[i]

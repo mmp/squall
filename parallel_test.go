@@ -9,7 +9,7 @@ import (
 func makeMultipleMessages(count int) []byte {
 	// Create multiple complete GRIB2 messages
 	var data []byte
-	for i := 0; i < count; i++ {
+	for range count {
 		data = append(data, makeCompleteGRIB2Message()...)
 	}
 	return data

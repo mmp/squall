@@ -312,7 +312,7 @@ func (br *BitReader) ReadBytes(n int) (uint64, error) {
 	byteIndex := br.offset / 8
 	var result uint64
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		result = (result << 8) | uint64(br.data[byteIndex+i])
 	}
 

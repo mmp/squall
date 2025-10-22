@@ -41,7 +41,7 @@ func NewWorkerPool(workers int, ctx context.Context) *WorkerPool {
 	}
 
 	// Start workers
-	for i := 0; i < workers; i++ {
+	for range workers {
 		pool.wg.Add(1)
 		go pool.worker()
 	}

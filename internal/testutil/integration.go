@@ -80,7 +80,7 @@ func compareArrays(
 		numToCompare = len(refFields)
 	}
 
-	for i := 0; i < numToCompare; i++ {
+	for i := range numToCompare {
 		mgribField := mgribFields[i]
 		refField := refFields[i]
 

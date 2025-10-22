@@ -169,7 +169,7 @@ func makeCompleteGRIB2Message() []byte {
 	sec7[4] = 7                                                 // Section number
 	// Data values: 0, 1, 2, 3, 4, 5, 6, 7, 8 (packed as 8-bit values)
 	// These will decode to: 250.0, 251.0, 252.0, ..., 258.0
-	for i := 0; i < 9; i++ {
+	for i := range 9 {
 		sec7[5+i] = byte(i)
 	}
 	msg = append(msg, sec7...)
