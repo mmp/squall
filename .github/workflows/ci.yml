@@ -17,6 +17,8 @@ jobs:
     steps:
     - name: Check out code
       uses: actions/checkout@v4
+      with:
+        lfs: true
 
     - name: Set up Go
       uses: actions/setup-go@v5
@@ -92,16 +94,44 @@ jobs:
     steps:
     - name: Check out code
       uses: actions/checkout@v4
+      with:
+        lfs: true
 
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version: '1.23'
 
-    - name: Install wgrib2
+    - name: Get wgrib2 latest commit hash
+      id: wgrib2-version
+      run: |
+        WGRIB2_COMMIT=$(git ls-remote https://github.com/NOAA-EMC/wgrib2.git HEAD | cut -f1)
+        echo "commit=$WGRIB2_COMMIT" >> $GITHUB_OUTPUT
+        echo "wgrib2 latest commit: $WGRIB2_COMMIT"
+
+    - name: Cache wgrib2
+      id: cache-wgrib2
+      uses: actions/cache@v4
+      with:
+        path: ~/wgrib2
+        key: wgrib2-${{ runner.os }}-${{ steps.wgrib2-version.outputs.commit }}
+
+    - name: Build wgrib2 from source
+      if: steps.cache-wgrib2.outputs.cache-hit != 'true'
       run: |
         sudo apt-get update
-        sudo apt-get install -y wgrib2
+        sudo apt-get install -y gcc gfortran make libnetcdf-dev libpng-dev libaec-dev
+        cd ~
+        git clone https://github.com/NOAA-EMC/wgrib2.git
+        cd wgrib2
+        export CC=gcc
+        export FC=gfortran
+        make
+        # Verify the build
+        ./wgrib2/wgrib2 -version
+
+    - name: Add wgrib2 to PATH
+      run: echo "$HOME/wgrib2/wgrib2" >> $GITHUB_PATH
 
     - name: Run integration tests
       run: go test -v -run TestIntegration ./...
