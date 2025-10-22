@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// IntegrationTestResult holds the results of comparing mgrib2 against reference implementations.
+// IntegrationTestResult holds the results of comparing squall against reference implementations.
 type IntegrationTestResult struct {
 	FileName string
 
@@ -22,7 +22,7 @@ type IntegrationTestResult struct {
 	Errors          []string
 }
 
-// CompareImplementations compares mgrib2 against wgrib2 and go-grib2 for a given GRIB2 file.
+// CompareImplementations compares mgrib2 against wgrib2 for a given GRIB2 file.
 //
 // maxULP specifies the maximum ULP difference allowed for floating-point comparisons.
 // Typically 10-100 ULPs is reasonable for numerical accuracy differences.
@@ -47,13 +47,13 @@ func CompareImplementations(gribFile string, maxULP int64) (*IntegrationTestResu
 
 	result.TotalFields = len(mgribFields)
 
-	// Parse with go-grib2
-	goGrib2Fields, err := ParseGoGrib2(gribFile)
+	// Parse with wgrib2 (NOAA reference implementation)
+	wgrib2Fields, err := ParseWgrib2(gribFile)
 	if err != nil {
-		result.Errors = append(result.Errors, fmt.Sprintf("go-grib2 parse failed: %v", err))
+		result.Errors = append(result.Errors, fmt.Sprintf("wgrib2 parse failed: %v", err))
 	} else {
-		// Compare mgrib2 vs go-grib2 message by message
-		compareArrays(mgribFields, goGrib2Fields, maxULP, result, false)
+		// Compare mgrib2 vs wgrib2 message by message
+		compareArrays(mgribFields, wgrib2Fields, maxULP, result, true)
 	}
 
 	return result, nil
@@ -73,7 +73,7 @@ func compareArrays(
 	// Check if arrays have same length
 	if len(mgribFields) != len(refFields) {
 		result.Errors = append(result.Errors,
-			fmt.Sprintf("message count mismatch: mgrib2 has %d, reference has %d",
+			fmt.Sprintf("message count mismatch: squall has %d, reference has %d",
 				len(mgribFields), len(refFields)))
 		if isWgrib2 {
 			result.AllWgrib2Match = false
@@ -95,7 +95,7 @@ func compareArrays(
 
 		// Compare fields (allow metadata mismatches due to naming differences)
 		comparison := CompareFields(mgribField, refField, maxULP)
-		comparison.Source = fmt.Sprintf("message %d: mgrib2 vs %s", i+1, refField.Source)
+		comparison.Source = fmt.Sprintf("message %d: squall vs %s", i+1, refField.Source)
 		comparison.MessageCount = 1
 
 		// Only fail on data mismatches, not metadata (field names differ between implementations)
@@ -175,15 +175,15 @@ func (r *IntegrationTestResult) String() string {
 // Only checks data and coordinate matches, not metadata (field names),
 // since different implementations use different naming conventions.
 func (r *IntegrationTestResult) Passed() bool {
-	// For now, only check go-grib2 (wgrib2 comparison removed)
-	// A test passes if all go-grib2 data/coordinates match and there are no critical errors
+	// Check wgrib2 comparison (NOAA reference implementation)
+	// A test passes if all wgrib2 data/coordinates match and there are no critical errors
 	hasNonParseErrors := false
 	for _, err := range r.Errors {
-		// Ignore go-grib2 parse errors for unsupported features
-		if !strings.Contains(err, "go-grib2 parse failed") {
+		// Ignore wgrib2 parse errors for unsupported features
+		if !strings.Contains(err, "wgrib2 parse failed") {
 			hasNonParseErrors = true
 			break
 		}
 	}
-	return r.AllGoGrib2Match && !hasNonParseErrors
+	return r.AllWgrib2Match && !hasNonParseErrors
 }

@@ -1,4 +1,4 @@
-package mgrib2_test
+package grib_test
 
 import (
 	"flag"
@@ -14,10 +14,11 @@ var (
 	noSizeLimit = flag.Bool("no-size-limit", false, "Allow testing files of any size (default: 15MB limit)")
 )
 
-// TestIntegrationWithRealFiles tests mgrib2 against reference implementations
+// TestIntegrationWithRealFiles tests mgrib2 against the wgrib2 reference implementation
 // using real GRIB2 files from the testgribs/ directory.
 //
-// This test validates decoded values against wgrib2 (NOAA reference implementation).
+// This test validates decoded values, coordinates, and grid data against wgrib2
+// (NOAA's official reference implementation) with full float32 precision.
 // By default, files larger than 15 MB are skipped. Use -no-size-limit to test all files.
 //
 // Examples:
@@ -77,10 +78,9 @@ func testGRIB2File(t *testing.T, gribFile string) {
 	t.Logf("Testing %s (%.1f MB)", filepath.Base(gribFile), float64(info.Size())/1024/1024)
 
 	// Maximum ULP difference allowed
-	// Use very high tolerance for cross-implementation comparison
-	// because go-grib2 uses float32 internally while mgrib2 uses float64,
-	// which makes ULP comparisons less meaningful
-	maxULP := int64(300000000) // ~2^28, allows for float32/float64 precision differences
+	// Use reasonable tolerance for float32 precision comparison
+	// Both mgrib2 and wgrib2 output float32 values, so ULP comparison is meaningful
+	maxULP := int64(100) // Allow for minor rounding differences in float32 arithmetic
 
 	// Run comparison
 	result, err := testutil.CompareImplementations(gribFile, maxULP)
@@ -98,9 +98,6 @@ func testGRIB2File(t *testing.T, gribFile string) {
 		// Print summary statistics
 		if len(result.Wgrib2Comparisons) > 0 {
 			printComparisonStats(t, "wgrib2", result.Wgrib2Comparisons)
-		}
-		if len(result.GoGrib2Comparisons) > 0 {
-			printComparisonStats(t, "go-grib2", result.GoGrib2Comparisons)
 		}
 	} else {
 		// Print success summary
