@@ -11,9 +11,9 @@ type IntegrationTestResult struct {
 	FileName string
 
 	// Field comparisons
-	TotalFields       int
-	FieldsCompared    int
-	Wgrib2Comparisons []*ComparisonResult
+	TotalFields        int
+	FieldsCompared     int
+	Wgrib2Comparisons  []*ComparisonResult
 	GoGrib2Comparisons []*ComparisonResult
 
 	// Summary

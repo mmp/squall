@@ -221,6 +221,9 @@ var parameterMassEntries = []*Entry{
 	{20, "Standard Deviation Pressure", "Standard deviation of pressure", "Pa"},
 }
 
+// ParameterNumberTable is the global lookup table for GRIB2 parameter names.
+// It maps discipline, category, and parameter numbers to human-readable names
+// according to WMO GRIB2 Code Table 4.2.
 var ParameterNumberTable *DisciplineSpecificTable
 
 func init() {

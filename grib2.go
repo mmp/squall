@@ -44,10 +44,10 @@ type GRIB2 struct {
 	LevelValue float32 // Value of the level (e.g., 500 for 500 hPa)
 
 	// Grid information
-	GridType   string // Lat/Lon, Gaussian, Lambert, etc.
-	GridNi     int    // Number of points in i direction
-	GridNj     int    // Number of points in j direction
-	NumPoints  int    // Total number of grid points
+	GridType  string // Lat/Lon, Gaussian, Lambert, etc.
+	GridNi    int    // Number of points in i direction
+	GridNj    int    // Number of points in j direction
+	NumPoints int    // Total number of grid points
 
 	// Raw message for advanced users
 	message *Message
@@ -300,32 +300,6 @@ func messageToGRIB2WithCoords(msg *Message, lats, lons []float32) (*GRIB2, error
 	return populateMetadata(g2, msg), nil
 }
 
-// messageToGRIB2 converts an internal Message to a public GRIB2 struct.
-func messageToGRIB2(msg *Message) (*GRIB2, error) {
-	// Decode data
-	data, err := msg.DecodeData()
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode data: %w", err)
-	}
-
-	// Get coordinates
-	lats, lons, err := msg.Coordinates()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get coordinates: %w", err)
-	}
-
-	// Build GRIB2 struct
-	g2 := &GRIB2{
-		Data:       data,
-		Latitudes:  lats,
-		Longitudes: lons,
-		NumPoints:  len(data),
-		message:    msg,
-	}
-
-	return populateMetadata(g2, msg), nil
-}
-
 // populateMetadata extracts metadata from a Message into a GRIB2 struct
 func populateMetadata(g2 *GRIB2, msg *Message) *GRIB2 {
 	// Extract metadata
@@ -343,7 +317,7 @@ func populateMetadata(g2 *GRIB2, msg *Message) *GRIB2 {
 	if msg.Section3 != nil && msg.Section3.Grid != nil {
 		g2.GridType = fmt.Sprintf("Template %d", msg.Section3.Grid.TemplateNumber())
 		g2.GridNi = int(msg.Section3.NumDataPoints) // Simplified
-		g2.GridNj = 1                                // Simplified
+		g2.GridNj = 1                               // Simplified
 	}
 
 	if msg.Section4 != nil && msg.Section4.Product != nil {

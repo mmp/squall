@@ -268,8 +268,9 @@ func parseWgrib2Time(s string) (time.Time, error) {
 //
 // Format: "i, j, lat, lon" (one per line)
 // Example:
-//   1,         1, 40.409, 263.379
-//   2,         1, 40.409, 263.415
+//
+//	1,         1, 40.409, 263.379
+//	2,         1, 40.409, 263.415
 func readGridout(path string) ([]coord, error) {
 	file, err := os.Open(path)
 	if err != nil {

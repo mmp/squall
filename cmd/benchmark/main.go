@@ -124,7 +124,6 @@ func benchmarkMgrib2(filename string, cpuprofile string, memprofile string) erro
 	return nil
 }
 
-
 func main() {
 	// Define flags
 	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to `file`")

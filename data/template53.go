@@ -16,25 +16,25 @@ import (
 //
 // Commonly used by regional forecast models like HRRR and NAM.
 type Template53 struct {
-	ReferenceValue          float32 // Reference value (R) - base value for all data
-	BinaryScaleFactor       int16   // Binary scale factor (E)
-	DecimalScaleFactor      int16   // Decimal scale factor (D)
-	NumBitsPerValue         uint8   // Number of bits for each value (before grouping)
-	OriginalFieldType       uint8   // Type of original field values (Table 5.1)
-	GroupSplittingMethod    uint8   // Method used to split data into groups (Table 5.4)
-	MissingValueManagement  uint8   // Missing value management (Table 5.5)
-	PrimaryMissingValue     float32 // Primary missing value substitute
-	SecondaryMissingValue   float32 // Secondary missing value substitute
-	NumberOfGroups          uint32  // Number of groups
-	ReferenceGroupWidth     uint8   // Reference for group widths
-	NumBitsGroupWidth       uint8   // Number of bits for group widths
-	ReferenceGroupLength    uint32  // Reference for group lengths
-	GroupLengthIncrement    uint8   // Increment for group lengths
-	TrueLengthLastGroup     uint32  // True length of last group
-	NumBitsGroupLength      uint8   // Number of bits for scaled group lengths
-	SpatialDiffOrder        uint8   // Order of spatial differencing (1 or 2)
-	NumOctetsExtraDescriptors uint8 // Number of octets for extra descriptors
-	NumberOfDataValues      uint32  // Total number of data values to unpack
+	ReferenceValue            float32 // Reference value (R) - base value for all data
+	BinaryScaleFactor         int16   // Binary scale factor (E)
+	DecimalScaleFactor        int16   // Decimal scale factor (D)
+	NumBitsPerValue           uint8   // Number of bits for each value (before grouping)
+	OriginalFieldType         uint8   // Type of original field values (Table 5.1)
+	GroupSplittingMethod      uint8   // Method used to split data into groups (Table 5.4)
+	MissingValueManagement    uint8   // Missing value management (Table 5.5)
+	PrimaryMissingValue       float32 // Primary missing value substitute
+	SecondaryMissingValue     float32 // Secondary missing value substitute
+	NumberOfGroups            uint32  // Number of groups
+	ReferenceGroupWidth       uint8   // Reference for group widths
+	NumBitsGroupWidth         uint8   // Number of bits for group widths
+	ReferenceGroupLength      uint32  // Reference for group lengths
+	GroupLengthIncrement      uint8   // Increment for group lengths
+	TrueLengthLastGroup       uint32  // True length of last group
+	NumBitsGroupLength        uint8   // Number of bits for scaled group lengths
+	SpatialDiffOrder          uint8   // Order of spatial differencing (1 or 2)
+	NumOctetsExtraDescriptors uint8   // Number of octets for extra descriptors
+	NumberOfDataValues        uint32  // Total number of data values to unpack
 }
 
 // ParseTemplate53 parses Data Representation Template 5.3.
@@ -357,7 +357,9 @@ func (t *Template53) reverseSpatialDifferencing1(diffVals []int32, firstVals []i
 // reverseSpatialDifferencing2 reverses second-order spatial differencing.
 //
 // Second-order differencing: Z[n] = (X[n] - X[n-1]) - (X[n-1] - X[n-2])
-//                                  = X[n] - 2*X[n-1] + X[n-2]
+//
+//	= X[n] - 2*X[n-1] + X[n-2]
+//
 // Reversal: X[n] = Z[n] + 2*X[n-1] - X[n-2] + min_val
 //
 // Per GRIB2 spec and reference implementations (wgrib2, go-grib2):
@@ -458,29 +460,6 @@ func (t *Template53) applyScalingWithBitmap(packedValues []int32, bitmap []bool)
 	}
 
 	return values, nil
-}
-
-// applyScaling applies the scaling formula to a packed value.
-//
-// Formula: value = (R + X * 2^E) / 10^D
-// This is the same formula as Template 5.0, applied after spatial differencing reversal.
-func (t *Template53) applyScaling(packedValue int32) float32 {
-	// Start with reference value
-	value := float32(t.ReferenceValue)
-
-	// Add scaled packed value: X * 2^E
-	if packedValue != 0 {
-		binaryScale := float32(math.Pow(2.0, float64(t.BinaryScaleFactor)))
-		value += float32(packedValue) * binaryScale
-	}
-
-	// Apply decimal scaling: / 10^D
-	if t.DecimalScaleFactor != 0 {
-		decimalScale := float32(math.Pow(10.0, float64(t.DecimalScaleFactor)))
-		value /= decimalScale
-	}
-
-	return value
 }
 
 // String returns a human-readable description.

@@ -22,8 +22,9 @@ var (
 // By default, files larger than 15 MB are skipped. Use -no-size-limit to test all files.
 //
 // Examples:
-//   go test -v -run TestIntegration                    # Test files up to 15 MB
-//   go test -v -run TestIntegration -no-size-limit     # Test all files including large CONUS
+//
+//	go test -v -run TestIntegration                    # Test files up to 15 MB
+//	go test -v -run TestIntegration -no-size-limit     # Test all files including large CONUS
 func TestIntegrationWithRealFiles(t *testing.T) {
 	// Look for GRIB2 files in testgribs directory
 	testgribsDir := "testgribs"
