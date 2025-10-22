@@ -1,19 +1,25 @@
-# squall - High-Performance GRIB2 Parser for Go
+# squall - GRIB2 Parser for Go
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/mmp/squall.svg)](https://pkg.go.dev/github.com/mmp/squall)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mmp/squall)](https://goreportcard.com/report/github.com/mmp/squall)
 
-**squall** is a clean, idiomatic Go library for reading GRIB2 (GRIdded Binary 2nd edition) meteorological data files. It provides blazing-fast parallel decoding with a simple, ergonomic API.
+**squall** is a Go library for reading GRIB2 (GRIdded Binary 2nd edition) meteorological data files.
+It provides high-performance parallel decoding of GRIB2 files with a simple API.
 
-## Features
+Motivation: there are a few Go libraries for reading GRIB files, though none seems to be actively maintained and all seem to be incomplete. I spent some time using Claude to extend [go-grib2](https://github.com/amsokol/go-grib2) for my needs, though it is more or less a transpilation of the C [wgrib2](https://github.com/NOAA-EMC/wgrib2) library, which is somewhat baroque.
+Claude did well enough that I was curious whether it could implement a library more to my aesthetic from scratch.
 
-- ✅ **Pure Go** - No CGo dependencies, easy cross-compilation
-- ⚡ **9.4x faster** - Parallel message decoding with optimized workers
-- 🎯 **Clean API** - Streaming interface with `io.ReadSeeker`
-- 📊 **Validated** - 99.9% exact match with wgrib2 reference implementation
-- 🔍 **Flexible Filtering** - Filter by parameter, level, time, or discipline
-- 🧪 **Well-Tested** - 157 unit tests, comprehensive integration tests
-- 📝 **Data-Driven** - WMO code tables as Go data structures
+I gave it a general description of what I wanted:
+- That the external API should generally follow [go-grib2](https://github.com/amsokol/go-grib2), which provides a `Read()` entrypoint and returns an array of `GRIB2` objects, one for each record in the file.
+- That, unlike `wgrib2`, it should try to be data-driven and should encode things like offsets that depend on the type of object being parsed in tables, rather than through complex control flow in code.
+- That it should read records in parallel.
+
+Claude generated the plan in `docs/` and the code followed from that; the implementation is 100% due to Claude Code; I intentionally have not directly edited any of the code myself, though I did give Claude specific guidance on a few points along the way:
+- To take an `io.ReadCloser` in the `Read()` method (admittedly, contrary to my original direction to follow `go-grib2`'s public API.)
+- When we started looking at performance, after Claude suggested optimizing the lat-long coordinate decoding kernel, which was 75% of the runtime, I instead suggested that many records would likely have the same coordinate specifications and that it would be worth finding the unique specifications, decoding those once, and sharing the results. That led to 221f7b146e, which was a significant speedup.
+- There were, of course, other points of guidance and correction along the way, though all directional advice rather than specific directions about how the implementation should be done.
+
+Overall, I'm impressed with how far Claude has been able to go with this.
 
 ## Installation
 
@@ -116,18 +122,7 @@ for _, msg := range messages {
 
 ## Performance
 
-Benchmarked on HRRR CONUS file (708 messages, 16M grid points):
-
-| Implementation | Time | Speedup |
-|---------------|------|---------|
-| Sequential | ~8.5s | 1.0x |
-| **squall (parallel)** | **~0.9s** | **9.4x** |
-
-Performance optimizations:
-- Parallel coordinate and data decoding
-- Pre-computed scale factors
-- Limited to 2×NumCPU goroutines to optimize memory usage
-- Float32 precision throughout (matches GRIB2 spec)
+Benchmarked on a 357MB HRRR CONUS file (708 messages, 16M grid points), **squall** loads the entire file in 0.9s on an M4 MacBook Pro. Speed is due to both algorithmic optimizations and parallel decoding of coordinates and messages.
 
 ## Command-Line Tool
 
@@ -151,96 +146,25 @@ Message 1:
 
 ## Supported Features
 
+Note that **squall**'s support for GRIB files is not complete, though it suffices for my own needs so far with NOAA HRRR files.
+
 ### Grid Types
-- ✅ Latitude/Longitude regular grids (Template 3.0)
-- ✅ Lambert Conformal (Template 3.30)
-- ⏳ Gaussian grids (Template 3.40) - coming soon
+- Latitude/Longitude regular grids (Template 3.0)
+- Lambert Conformal (Template 3.30)
 
 ### Data Packing
-- ✅ Simple packing (Template 5.0)
-- ✅ Complex packing with spatial differencing (Template 5.3)
-- ⏳ JPEG2000 compression (Template 5.40) - coming soon
-- ⏳ PNG compression (Template 5.41) - coming soon
+- Simple packing (Template 5.0)
+- Complex packing with spatial differencing (Template 5.3)
 
 ### Validation
 
-All output validated against wgrib2 (NOAA's reference implementation):
-- **708 messages tested**: 100% passed
-- **16,023,456 grid points**: 99.9% exact matches
-- **Max ULP difference**: 1 (essentially perfect float32 precision)
-
-## Architecture
-
-squall follows a clean, layered architecture:
-
-```
-┌─────────────────────────────────────┐
-│  Public API (Read functions)       │  ← User-facing
-├─────────────────────────────────────┤
-│  Message Parser & Orchestrator     │  ← Coordination
-├─────────────────────────────────────┤
-│  Section Parsers (0-7)              │  ← GRIB2 sections
-├─────────────────────────────────────┤
-│  Data Decoders (Templates 5.x)     │  ← Unpacking
-├─────────────────────────────────────┤
-│  Grid Decoders (Templates 3.x)     │  ← Coordinates
-├─────────────────────────────────────┤
-│  Code Tables & Metadata             │  ← WMO standards
-└─────────────────────────────────────┘
-```
-
-Key design principles:
-- **Data-driven**: WMO code tables as Go data structures, not switch statements
-- **Parallel-first**: Goroutines for concurrent message processing
-- **Interface-based**: Clean abstractions for grids, decoders, and templates
-- **No global state**: Pure functions, immutable data structures
-
-## Comparison with Other Libraries
-
-| Feature | wgrib2 | go-grib2 | squall |
-|---------|--------|----------|---------|
-| Language | C | Go + CGo | Pure Go |
-| Parallelism | OpenMP | None | Native goroutines |
-| Performance | Baseline | ~1x | **9.4x faster** |
-| Dependencies | Many | CGo + wgrib2 | **None** (stdlib only) |
-| Code Tables | Switch statements | Switch statements | **Data structures** |
-| API | CLI only | Sequential | **Streaming + parallel** |
-| Testing | Integration | Basic | **157 unit + integration tests** |
-
-## Documentation
-
-- **[API Reference](https://pkg.go.dev/github.com/mmp/squall)** - Complete godoc
-- **[Implementation Plan](docs/IMPLEMENTATION_PLAN.md)** - Architecture and phases
-- **[Design Principles](docs/DESIGN_PRINCIPLES.md)** - Why we built it this way
-- **[GRIB2 Specification](docs/GRIB2_SPEC.md)** - Format reference
-
-## Development Status
-
-**Current Version**: v0.9.0 (release candidate)
-
-Completed phases (7/10):
-- ✅ Phase 1: Core Infrastructure & Binary Parsing
-- ✅ Phase 2: Code Tables (200+ WMO entries)
-- ✅ Phase 3: Section Parsers (Sections 0-7)
-- ✅ Phase 4: Data Decoding (Simple & Complex packing)
-- ✅ Phase 5: Grid Coordinate Mapping (Lat/Lon, Lambert)
-- ✅ Phase 6: Parallel Processing (9.4x speedup)
-- ✅ Phase 7: Public API & Filtering
-
-In progress:
-- ⏳ Phase 8: Additional encodings (JPEG2000, PNG)
-- ⏳ Phase 9: Comprehensive testing & fuzzing
-- ⏳ Phase 10: Documentation & release preparation
+Output for a number of grib files has been validated against wgrib2 (NOAA's reference implementation).
 
 ## Contributing
 
-Contributions welcome! Please:
-
-1. Read the [Implementation Plan](docs/IMPLEMENTATION_PLAN.md)
-2. Follow [Design Principles](docs/DESIGN_PRINCIPLES.md)
-3. Write tests for all code (we maintain >75% coverage)
-4. Add godoc comments for public APIs
-5. Run `go test ./...` before submitting
+I would like this repository to remain purely written by Claude Code.
+If you have a grib file that it cannot handle, please open an issue and provide the grib file or a pointer to it.
+I will happily put Claude on the job.
 
 ## Testing
 
@@ -258,27 +182,14 @@ go test -v -run TestIntegration
 go test -bench=. -benchmem
 ```
 
+## License
+
+MIT License - See [LICENSE](LICENSE) for details
+
 ## References
 
 - **WMO Manual on Codes, Volume I.2** (WMO-No. 306)
 - **NCEP GRIB2 Documentation**: https://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_doc/
 - **WMO Code Registry**: https://codes.wmo.int/grib2
-- **wgrib2** (NOAA reference implementation)
+- **wgrib2**: https://github.com/NOAA-EMC/wgrib2 (NOAA reference implementation)
 
-## License
-
-MIT License - See [LICENSE](LICENSE) for details
-
-## Author
-
-Developed with assistance from Claude Code (Anthropic)
-
-## Acknowledgments
-
-- NOAA/NCEP for wgrib2 reference implementation
-- WMO for GRIB2 specification and code tables
-- Go team for excellent standard library
-
----
-
-**squall** - Fast, clean, idiomatic GRIB2 parsing for Go 🌪️
