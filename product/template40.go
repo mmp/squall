@@ -13,21 +13,21 @@ import (
 // This is the most common product template, used for standard forecast
 // and analysis data.
 type Template40 struct {
-	ParameterCategory      uint8  // Parameter category (Table 4.1)
-	ParameterNumber        uint8  // Parameter number (Table 4.2)
-	GeneratingProcess      uint8  // Type of generating process (Table 4.3)
-	BackgroundProcess      uint8  // Background generating process
-	ForecastProcess        uint8  // Analysis or forecast generating process
-	HoursAfterCutoff       uint16 // Hours after data cutoff
-	MinutesAfterCutoff     uint8  // Minutes after data cutoff
-	TimeRangeUnit          uint8  // Indicator of unit of time range (Table 4.4)
-	ForecastTime           uint32 // Forecast time in units defined by TimeRangeUnit
-	FirstSurfaceType       uint8  // Type of first fixed surface (Table 4.5)
-	FirstSurfaceScaleFactor uint8  // Scale factor of first fixed surface
-	FirstSurfaceValue      uint32 // Scaled value of first fixed surface
-	SecondSurfaceType      uint8  // Type of second fixed surface (Table 4.5)
-	SecondSurfaceScaleFactor uint8 // Scale factor of second fixed surface
-	SecondSurfaceValue     uint32 // Scaled value of second fixed surface
+	ParameterCategory        uint8  // Parameter category (Table 4.1)
+	ParameterNumber          uint8  // Parameter number (Table 4.2)
+	GeneratingProcess        uint8  // Type of generating process (Table 4.3)
+	BackgroundProcess        uint8  // Background generating process
+	ForecastProcess          uint8  // Analysis or forecast generating process
+	HoursAfterCutoff         uint16 // Hours after data cutoff
+	MinutesAfterCutoff       uint8  // Minutes after data cutoff
+	TimeRangeUnit            uint8  // Indicator of unit of time range (Table 4.4)
+	ForecastTime             uint32 // Forecast time in units defined by TimeRangeUnit
+	FirstSurfaceType         uint8  // Type of first fixed surface (Table 4.5)
+	FirstSurfaceScaleFactor  uint8  // Scale factor of first fixed surface
+	FirstSurfaceValue        uint32 // Scaled value of first fixed surface
+	SecondSurfaceType        uint8  // Type of second fixed surface (Table 4.5)
+	SecondSurfaceScaleFactor uint8  // Scale factor of second fixed surface
+	SecondSurfaceValue       uint32 // Scaled value of second fixed surface
 }
 
 // ParseTemplate40 parses Product Definition Template 4.0.

@@ -14,17 +14,18 @@ import (
 //
 // Decoding formula: value = (R + X * 2^E) / 10^D
 // where:
-//   R = reference value (IEEE 754 float)
-//   X = packed value (n-bit unsigned integer)
-//   E = binary scale factor (signed int)
-//   D = decimal scale factor (signed int)
+//
+//	R = reference value (IEEE 754 float)
+//	X = packed value (n-bit unsigned integer)
+//	E = binary scale factor (signed int)
+//	D = decimal scale factor (signed int)
 type Template50 struct {
-	ReferenceValue       float32 // Reference value (R) - minimum value in field
-	BinaryScaleFactor    int16   // Binary scale factor (E)
-	DecimalScaleFactor   int16   // Decimal scale factor (D)
-	NumBitsPerValue      uint8   // Number of bits per packed value (n)
-	OriginalFieldType    uint8   // Type of original field values (Table 5.1)
-	NumberOfDataValues   uint32  // Number of data values to unpack
+	ReferenceValue     float32 // Reference value (R) - minimum value in field
+	BinaryScaleFactor  int16   // Binary scale factor (E)
+	DecimalScaleFactor int16   // Decimal scale factor (D)
+	NumBitsPerValue    uint8   // Number of bits per packed value (n)
+	OriginalFieldType  uint8   // Type of original field values (Table 5.1)
+	NumberOfDataValues uint32  // Number of data values to unpack
 }
 
 // ParseTemplate50 parses Data Representation Template 5.0.
@@ -44,12 +45,12 @@ func ParseTemplate50(numDataValues uint32, data []byte) (*Template50, error) {
 	originalFieldType, _ := r.Uint8()
 
 	return &Template50{
-		ReferenceValue:      referenceValue,
-		BinaryScaleFactor:   binaryScaleFactor,
-		DecimalScaleFactor:  decimalScaleFactor,
-		NumBitsPerValue:     bitsPerValue,
-		OriginalFieldType:   originalFieldType,
-		NumberOfDataValues:  numDataValues,
+		ReferenceValue:     referenceValue,
+		BinaryScaleFactor:  binaryScaleFactor,
+		DecimalScaleFactor: decimalScaleFactor,
+		NumBitsPerValue:    bitsPerValue,
+		OriginalFieldType:  originalFieldType,
+		NumberOfDataValues: numDataValues,
 	}, nil
 }
 

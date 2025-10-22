@@ -27,21 +27,22 @@ type Section1 struct {
 // ParseSection1 parses the GRIB2 Identification Section (Section 1).
 //
 // Section 1 structure (minimum 21 bytes):
-//   Bytes 1-4:   Length of section (uint32)
-//   Byte 5:      Section number (must be 1)
-//   Bytes 6-7:   Originating center (Table C-1)
-//   Bytes 8-9:   Originating sub-center
-//   Byte 10:     Master tables version
-//   Byte 11:     Local tables version
-//   Byte 12:     Significance of reference time (Table 1.2)
-//   Bytes 13-14: Year (4 digits)
-//   Byte 15:     Month
-//   Byte 16:     Day
-//   Byte 17:     Hour
-//   Byte 18:     Minute
-//   Byte 19:     Second
-//   Byte 20:     Production status (Table 1.3)
-//   Byte 21:     Type of processed data (Table 1.4)
+//
+//	Bytes 1-4:   Length of section (uint32)
+//	Byte 5:      Section number (must be 1)
+//	Bytes 6-7:   Originating center (Table C-1)
+//	Bytes 8-9:   Originating sub-center
+//	Byte 10:     Master tables version
+//	Byte 11:     Local tables version
+//	Byte 12:     Significance of reference time (Table 1.2)
+//	Bytes 13-14: Year (4 digits)
+//	Byte 15:     Month
+//	Byte 16:     Day
+//	Byte 17:     Hour
+//	Byte 18:     Minute
+//	Byte 19:     Second
+//	Byte 20:     Production status (Table 1.3)
+//	Byte 21:     Type of processed data (Table 1.4)
 //
 // Returns an error if:
 //   - The section is shorter than 21 bytes

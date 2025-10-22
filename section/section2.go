@@ -19,9 +19,10 @@ type Section2 struct {
 // ParseSection2 parses the GRIB2 Local Use Section (Section 2).
 //
 // Section 2 structure (variable length, minimum 5 bytes):
-//   Bytes 1-4:   Length of section (uint32)
-//   Byte 5:      Section number (must be 2)
-//   Bytes 6-n:   Local use data (opaque bytes)
+//
+//	Bytes 1-4:   Length of section (uint32)
+//	Byte 5:      Section number (must be 2)
+//	Bytes 6-n:   Local use data (opaque bytes)
 //
 // The data is stored as-is without interpretation. Applications that
 // need to use Section 2 data should implement their own parsing based

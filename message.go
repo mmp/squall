@@ -126,7 +126,7 @@ func ParseMessage(data []byte) (*Message, error) {
 
 	// Parse Section 6 (Bitmap)
 	// Section 6 needs the number of grid points from Section 3
-	numGridPoints := uint32(msg.Section3.NumDataPoints)
+	numGridPoints := msg.Section3.NumDataPoints
 	sec6Data := extractSectionData(data, offset, 6)
 	if sec6Data == nil {
 		return nil, &ParseError{

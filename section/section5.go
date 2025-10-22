@@ -12,20 +12,21 @@ import (
 // This section describes how the data values are packed/compressed,
 // including the packing method, number of bits per value, and scaling parameters.
 type Section5 struct {
-	Length                       uint32               // Total length of this section in bytes
-	NumDataValues                uint32               // Number of data values
-	DataRepresentationTemplate   uint16               // Data representation template number (Table 5.0)
-	Representation               data.Representation  // Parsed representation (template-specific)
+	Length                     uint32              // Total length of this section in bytes
+	NumDataValues              uint32              // Number of data values
+	DataRepresentationTemplate uint16              // Data representation template number (Table 5.0)
+	Representation             data.Representation // Parsed representation (template-specific)
 }
 
 // ParseSection5 parses the GRIB2 Data Representation Section (Section 5).
 //
 // Section 5 structure (variable length, minimum 11 bytes + template):
-//   Bytes 1-4:   Length of section (uint32)
-//   Byte 5:      Section number (must be 5)
-//   Bytes 6-9:   Number of data values (uint32)
-//   Bytes 10-11: Data representation template number (Table 5.0)
-//   Bytes 12-n:  Data representation (template-specific)
+//
+//	Bytes 1-4:   Length of section (uint32)
+//	Byte 5:      Section number (must be 5)
+//	Bytes 6-9:   Number of data values (uint32)
+//	Bytes 10-11: Data representation template number (Table 5.0)
+//	Bytes 12-n:  Data representation (template-specific)
 //
 // Currently supported templates:
 //   - 0: Simple packing (most common, ~80% of files)

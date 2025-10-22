@@ -16,8 +16,8 @@ func TestParseSection0Valid(t *testing.T) {
 			data: []byte{
 				'G', 'R', 'I', 'B', // Magic number
 				0x00, 0x00, // Reserved
-				0, // Discipline 0 (Meteorological)
-				2, // Edition 2
+				0,                                              // Discipline 0 (Meteorological)
+				2,                                              // Edition 2
 				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, // Message length 256
 			},
 			discipline:    0,
@@ -235,8 +235,8 @@ func TestParseSection0NonZeroReserved(t *testing.T) {
 	data := []byte{
 		'G', 'R', 'I', 'B',
 		0xFF, 0xFF, // Reserved (non-zero, but we allow it)
-		0,          // Discipline
-		2,          // Edition
+		0, // Discipline
+		2, // Edition
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
 	}
 

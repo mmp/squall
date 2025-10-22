@@ -48,12 +48,12 @@ type Template48 struct {
 // StatisticalTimeRange describes one statistical processing specification.
 // Each specification is 12 bytes (octets 47-58 for first range, then repeated).
 type StatisticalTimeRange struct {
-	StatisticalProcess         uint8  // Type of statistical processing (Table 4.10)
-	TimeIncrementType          uint8  // Type of time increment (Table 4.11)
-	TimeRangeUnit              uint8  // Unit of time range (Table 4.4)
-	TimeRangeLength            uint32 // Length of time range
-	TimeIncrementUnit          uint8  // Unit of time increment (Table 4.4)
-	TimeIncrement              uint32 // Time increment between successive fields
+	StatisticalProcess uint8  // Type of statistical processing (Table 4.10)
+	TimeIncrementType  uint8  // Type of time increment (Table 4.11)
+	TimeRangeUnit      uint8  // Unit of time range (Table 4.4)
+	TimeRangeLength    uint32 // Length of time range
+	TimeIncrementUnit  uint8  // Unit of time increment (Table 4.4)
+	TimeIncrement      uint32 // Time increment between successive fields
 }
 
 // ParseTemplate48 parses Product Definition Template 4.8.

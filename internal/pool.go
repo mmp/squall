@@ -12,14 +12,14 @@ import (
 // Tasks are executed concurrently, but the pool limits the number of concurrent
 // operations to prevent resource exhaustion.
 type WorkerPool struct {
-	workers   int
-	tasks     chan func() error
-	errors    chan error
-	wg        sync.WaitGroup
-	ctx       context.Context
-	cancel    context.CancelFunc
-	errOnce   sync.Once
-	firstErr  error
+	workers  int
+	tasks    chan func() error
+	errors   chan error
+	wg       sync.WaitGroup
+	ctx      context.Context
+	cancel   context.CancelFunc
+	errOnce  sync.Once
+	firstErr error
 }
 
 // NewWorkerPool creates a new worker pool with the specified number of workers.

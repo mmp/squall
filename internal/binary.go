@@ -196,8 +196,8 @@ func (r *Reader) Len() int {
 // GRIB2 sometimes packs data at bit boundaries (e.g., 12-bit values).
 type BitReader struct {
 	data    []byte
-	offset  int  // bit offset
-	maxBits int  // total number of bits available
+	offset  int // bit offset
+	maxBits int // total number of bits available
 }
 
 // NewBitReader creates a new bit-level reader.

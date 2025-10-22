@@ -371,11 +371,11 @@ func TestBitReaderReadBits(t *testing.T) {
 		want  uint64
 		desc  string
 	}{
-		{1, 1, "bit 0: 1"},                    // 1
-		{2, 1, "bits 1-2: 01"},                // 01
-		{3, 4, "bits 3-5: 100"},               // 100
-		{4, 13, "bits 6-9: 1101"},             // 1101 (crosses byte boundary)
-		{6, 21, "bits 10-15: 010101"},         // 010101
+		{1, 1, "bit 0: 1"},            // 1
+		{2, 1, "bits 1-2: 01"},        // 01
+		{3, 4, "bits 3-5: 100"},       // 100
+		{4, 13, "bits 6-9: 1101"},     // 1101 (crosses byte boundary)
+		{6, 21, "bits 10-15: 010101"}, // 010101
 	}
 
 	for i, tt := range tests {

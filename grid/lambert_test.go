@@ -7,9 +7,9 @@ import (
 
 func TestLambertConformalGrid_Coordinates(t *testing.T) {
 	tests := []struct {
-		name     string
-		grid     *LambertConformalGrid
-		testPts  map[int]struct{ lat, lon float64 } // index -> expected lat/lon
+		name      string
+		grid      *LambertConformalGrid
+		testPts   map[int]struct{ lat, lon float64 } // index -> expected lat/lon
 		tolerance float64
 	}{
 		{

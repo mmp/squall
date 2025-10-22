@@ -11,27 +11,30 @@ import (
 // This section indicates which grid points have valid data values.
 // Some grid points may be undefined/missing (e.g., land points in ocean data).
 type Section6 struct {
-	Length         uint32 // Total length of this section in bytes
+	Length          uint32 // Total length of this section in bytes
 	BitmapIndicator uint8  // Bitmap indicator (Table 6.0)
-	Bitmap         []bool // Bitmap: true = data present, false = missing (nil if not applicable)
+	Bitmap          []bool // Bitmap: true = data present, false = missing (nil if not applicable)
 }
 
 // ParseSection6 parses the GRIB2 Bit Map Section (Section 6).
 //
 // Section 6 structure (variable length, minimum 6 bytes):
-//   Bytes 1-4: Length of section (uint32)
-//   Byte 5:    Section number (must be 6)
-//   Byte 6:    Bit-map indicator (Table 6.0)
-//   Bytes 7-n: Bit map (if indicator = 0)
+//
+//	Bytes 1-4: Length of section (uint32)
+//	Byte 5:    Section number (must be 6)
+//	Byte 6:    Bit-map indicator (Table 6.0)
+//	Bytes 7-n: Bit map (if indicator = 0)
 //
 // Bitmap Indicator values (Table 6.0):
-//   0   = Bitmap applies and is specified in this section
-//   254 = Previously defined bitmap applies (not currently supported)
-//   255 = Bitmap does not apply - all grid points are valid
+//
+//	0   = Bitmap applies and is specified in this section
+//	254 = Previously defined bitmap applies (not currently supported)
+//	255 = Bitmap does not apply - all grid points are valid
 //
 // When indicator = 0, the bitmap contains one bit per grid point:
-//   1 = data value is present
-//   0 = data value is absent/missing
+//
+//	1 = data value is present
+//	0 = data value is absent/missing
 //
 // The numGridPoints parameter is required when indicator = 0 to determine
 // how many bits to read from the bitmap.

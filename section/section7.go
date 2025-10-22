@@ -19,9 +19,10 @@ type Section7 struct {
 // ParseSection7 parses the GRIB2 Data Section (Section 7).
 //
 // Section 7 structure (variable length, minimum 5 bytes):
-//   Bytes 1-4: Length of section (uint32)
-//   Byte 5:    Section number (must be 7)
-//   Bytes 6-n: Packed data (format depends on Section 5)
+//
+//	Bytes 1-4: Length of section (uint32)
+//	Byte 5:    Section number (must be 7)
+//	Bytes 6-n: Packed data (format depends on Section 5)
 //
 // The packed data is stored as-is and must be decoded using the
 // data representation template from Section 5.

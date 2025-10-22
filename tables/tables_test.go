@@ -152,7 +152,7 @@ func TestDisciplineTable(t *testing.T) {
 		{1, "Hydrological"},
 		{2, "Land Surface"},
 		{10, "Oceanographic"},
-		{192, "Local"}, // Range entry
+		{192, "Local"},   // Range entry
 		{255, "Missing"}, // Range entry
 	}
 

@@ -22,10 +22,10 @@ func makeCompleteGRIB2Message() []byte {
 
 	// Section 0: Indicator (16 bytes)
 	sec0 := make([]byte, 16)
-	copy(sec0[0:4], "GRIB")    // Magic number
+	copy(sec0[0:4], "GRIB")       // Magic number
 	sec0[4], sec0[5] = 0x00, 0x00 // Reserved
-	sec0[6] = 0                 // Discipline: Meteorological
-	sec0[7] = 2                 // Edition 2
+	sec0[6] = 0                   // Discipline: Meteorological
+	sec0[7] = 2                   // Edition 2
 	// Message length will be filled in at the end (bytes 8-15)
 	msg = append(msg, sec0...)
 
@@ -33,7 +33,7 @@ func makeCompleteGRIB2Message() []byte {
 	sec1 := make([]byte, 21)
 	// Length
 	sec1[0], sec1[1], sec1[2], sec1[3] = 0x00, 0x00, 0x00, 0x15 // 21
-	sec1[4] = 1 // Section number
+	sec1[4] = 1                                                 // Section number
 	// Center: 7 (NCEP)
 	sec1[5], sec1[6] = 0x00, 0x07
 	// Subcenter: 0
@@ -46,11 +46,11 @@ func makeCompleteGRIB2Message() []byte {
 	sec1[11] = 1
 	// Reference time: 2023-01-15 12:00:00
 	sec1[12], sec1[13] = 0x07, 0xE7 // Year 2023
-	sec1[14] = 1                     // Month
-	sec1[15] = 15                    // Day
-	sec1[16] = 12                    // Hour
-	sec1[17] = 0                     // Minute
-	sec1[18] = 0                     // Second
+	sec1[14] = 1                    // Month
+	sec1[15] = 15                   // Day
+	sec1[16] = 12                   // Hour
+	sec1[17] = 0                    // Minute
+	sec1[18] = 0                    // Second
 	// Production status: 0 (Operational)
 	sec1[19] = 0
 	// Type of data: 1 (Forecast)
@@ -61,8 +61,8 @@ func makeCompleteGRIB2Message() []byte {
 	sec3 := make([]byte, 86)
 	// Length
 	sec3[0], sec3[1], sec3[2], sec3[3] = 0x00, 0x00, 0x00, 0x56 // 86
-	sec3[4] = 3 // Section number
-	sec3[5] = 0 // Source of grid definition
+	sec3[4] = 3                                                 // Section number
+	sec3[5] = 0                                                 // Source of grid definition
 	// Number of data points: 9 (3x3)
 	sec3[6], sec3[7], sec3[8], sec3[9] = 0x00, 0x00, 0x00, 0x09
 	sec3[10] = 0 // Number of octets for optional list
@@ -97,7 +97,7 @@ func makeCompleteGRIB2Message() []byte {
 	sec4 := make([]byte, 43)
 	// Length
 	sec4[0], sec4[1], sec4[2], sec4[3] = 0x00, 0x00, 0x00, 0x2B // 43
-	sec4[4] = 4 // Section number
+	sec4[4] = 4                                                 // Section number
 	// Coordinate values: 0
 	sec4[5], sec4[6] = 0x00, 0x00
 	// Template number: 0
@@ -136,7 +136,7 @@ func makeCompleteGRIB2Message() []byte {
 	sec5 := make([]byte, 22)
 	// Length
 	sec5[0], sec5[1], sec5[2], sec5[3] = 0x00, 0x00, 0x00, 0x16 // 22
-	sec5[4] = 5 // Section number
+	sec5[4] = 5                                                 // Section number
 	// Number of data values: 9
 	sec5[5], sec5[6], sec5[7], sec5[8] = 0x00, 0x00, 0x00, 0x09
 	// Template number: 0 (Simple packing)
@@ -158,15 +158,15 @@ func makeCompleteGRIB2Message() []byte {
 	sec6 := make([]byte, 6)
 	// Length
 	sec6[0], sec6[1], sec6[2], sec6[3] = 0x00, 0x00, 0x00, 0x06 // 6
-	sec6[4] = 6   // Section number
-	sec6[5] = 255 // Bitmap indicator: 255 (no bitmap)
+	sec6[4] = 6                                                 // Section number
+	sec6[5] = 255                                               // Bitmap indicator: 255 (no bitmap)
 	msg = append(msg, sec6...)
 
 	// Section 7: Data (14 bytes: 5 header + 9 data)
 	sec7 := make([]byte, 14)
 	// Length
 	sec7[0], sec7[1], sec7[2], sec7[3] = 0x00, 0x00, 0x00, 0x0E // 14
-	sec7[4] = 7 // Section number
+	sec7[4] = 7                                                 // Section number
 	// Data values: 0, 1, 2, 3, 4, 5, 6, 7, 8 (packed as 8-bit values)
 	// These will decode to: 250.0, 251.0, 252.0, ..., 258.0
 	for i := 0; i < 9; i++ {

@@ -11,26 +11,27 @@ import (
 //
 // This section describes the geographic grid on which the data is defined.
 type Section3 struct {
-	Length               uint32    // Total length of this section in bytes
-	Source               uint8     // Source of grid definition (Table 3.0)
-	NumDataPoints        uint32    // Number of data points
-	NumOctetsOptionalList uint8    // Number of octets for optional list
-	InterpretOptionalList uint8    // Interpretation of optional list
-	TemplateNumber       uint16    // Grid definition template number (Table 3.1)
-	Grid                 grid.Grid // Parsed grid (template-specific)
+	Length                uint32    // Total length of this section in bytes
+	Source                uint8     // Source of grid definition (Table 3.0)
+	NumDataPoints         uint32    // Number of data points
+	NumOctetsOptionalList uint8     // Number of octets for optional list
+	InterpretOptionalList uint8     // Interpretation of optional list
+	TemplateNumber        uint16    // Grid definition template number (Table 3.1)
+	Grid                  grid.Grid // Parsed grid (template-specific)
 }
 
 // ParseSection3 parses the GRIB2 Grid Definition Section (Section 3).
 //
 // Section 3 structure (variable length, minimum 14 bytes + template):
-//   Bytes 1-4:   Length of section (uint32)
-//   Byte 5:      Section number (must be 3)
-//   Byte 6:      Source of grid definition (Table 3.0)
-//   Bytes 7-10:  Number of data points (uint32)
-//   Byte 11:     Number of octets for optional list
-//   Byte 12:     Interpretation of optional list
-//   Bytes 13-14: Grid definition template number (Table 3.1)
-//   Bytes 15-n:  Grid definition (template-specific)
+//
+//	Bytes 1-4:   Length of section (uint32)
+//	Byte 5:      Section number (must be 3)
+//	Byte 6:      Source of grid definition (Table 3.0)
+//	Bytes 7-10:  Number of data points (uint32)
+//	Byte 11:     Number of octets for optional list
+//	Byte 12:     Interpretation of optional list
+//	Bytes 13-14: Grid definition template number (Table 3.1)
+//	Bytes 15-n:  Grid definition (template-specific)
 //
 // Currently supported templates:
 //   - 0: Latitude/Longitude (equidistant cylindrical)

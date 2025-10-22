@@ -151,11 +151,11 @@ func TestParseSection4UnsupportedTemplate(t *testing.T) {
 
 func TestParseSection4DifferentParameters(t *testing.T) {
 	tests := []struct {
-		name          string
-		category      uint8
-		number        uint8
-		surfaceType   uint8
-		surfaceValue  uint32
+		name         string
+		category     uint8
+		number       uint8
+		surfaceType  uint8
+		surfaceValue uint32
 	}{
 		{"Temperature at 500mb", 0, 0, 100, 50000},
 		{"Relative Humidity at surface", 1, 1, 1, 0},

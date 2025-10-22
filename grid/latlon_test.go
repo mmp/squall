@@ -12,13 +12,13 @@ func TestLatLonGridCoordinates(t *testing.T) {
 	grid := &LatLonGrid{
 		Ni:           3,
 		Nj:           3,
-		La1:          90000,  // 90°N
-		Lo1:          0,      // 0°E
-		La2:          88000,  // 88°N
-		Lo2:          2000,   // 2°E
-		Di:           1000,   // 1° longitude
-		Dj:           1000,   // 1° latitude
-		ScanningMode: 0x00,   // Standard: +i, -j, consecutive
+		La1:          90000, // 90°N
+		Lo1:          0,     // 0°E
+		La2:          88000, // 88°N
+		Lo2:          2000,  // 2°E
+		Di:           1000,  // 1° longitude
+		Dj:           1000,  // 1° latitude
+		ScanningMode: 0x00,  // Standard: +i, -j, consecutive
 	}
 
 	lats := grid.Latitudes()
@@ -75,7 +75,7 @@ func TestLatLonGridCoordinatesReversedI(t *testing.T) {
 	// Expected: scanning east to west
 	expectedLats := []float32{
 		10, 10, 10, // Row 1
-		9, 9, 9,    // Row 2
+		9, 9, 9, // Row 2
 	}
 	expectedLons := []float32{
 		2, 1, 0, // East to west
@@ -113,8 +113,8 @@ func TestLatLonGridCoordinatesReversedJ(t *testing.T) {
 	// Expected: scanning south to north
 	expectedLats := []float32{
 		-10, -10, // Row 1: 10°S
-		-9, -9,   // Row 2: 9°S
-		-8, -8,   // Row 3: 8°S
+		-9, -9, // Row 2: 9°S
+		-8, -8, // Row 3: 8°S
 	}
 	expectedLons := []float32{
 		0, 1,
@@ -167,12 +167,12 @@ func TestLatLonGridCoordinatesNegativeLongitudes(t *testing.T) {
 	grid := &LatLonGrid{
 		Ni:           3,
 		Nj:           2,
-		La1:          0,       // 0°N
-		Lo1:          -10000,  // -10°E (350°E)
-		La2:          -1000,   // 1°S
-		Lo2:          -8000,   // -8°E (352°E)
-		Di:           1000,    // 1° longitude
-		Dj:           1000,    // 1° latitude
+		La1:          0,      // 0°N
+		Lo1:          -10000, // -10°E (350°E)
+		La2:          -1000,  // 1°S
+		Lo2:          -8000,  // -8°E (352°E)
+		Di:           1000,   // 1° longitude
+		Dj:           1000,   // 1° latitude
 		ScanningMode: 0x00,
 	}
 
@@ -285,11 +285,11 @@ func TestLatLonGridCoordinatesNonConsecutive(t *testing.T) {
 
 func TestLatLonGridScanningFlags(t *testing.T) {
 	tests := []struct {
-		name         string
-		scanMode     uint8
-		wantINeg     bool
-		wantJPos     bool
-		wantConsec   bool
+		name       string
+		scanMode   uint8
+		wantINeg   bool
+		wantJPos   bool
+		wantConsec bool
 	}{
 		{"Standard", 0x00, false, false, true},
 		{"Reversed I", 0x80, true, false, true},

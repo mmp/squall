@@ -11,16 +11,16 @@ import (
 // This is the most common grid type, consisting of a regular grid with
 // constant spacing in latitude and longitude.
 type LatLonGrid struct {
-	Ni           uint32  // Number of points along a parallel (longitude)
-	Nj           uint32  // Number of points along a meridian (latitude)
-	La1          int32   // Latitude of first grid point (millidegrees)
-	Lo1          int32   // Longitude of first grid point (millidegrees)
-	ResFlags     uint8   // Resolution and component flags
-	La2          int32   // Latitude of last grid point (millidegrees)
-	Lo2          int32   // Longitude of last grid point (millidegrees)
-	Di           uint32  // i direction increment (millidegrees)
-	Dj           uint32  // j direction increment (millidegrees)
-	ScanningMode uint8   // Scanning mode (Table 3.4)
+	Ni           uint32 // Number of points along a parallel (longitude)
+	Nj           uint32 // Number of points along a meridian (latitude)
+	La1          int32  // Latitude of first grid point (millidegrees)
+	Lo1          int32  // Longitude of first grid point (millidegrees)
+	ResFlags     uint8  // Resolution and component flags
+	La2          int32  // Latitude of last grid point (millidegrees)
+	Lo2          int32  // Longitude of last grid point (millidegrees)
+	Di           uint32 // i direction increment (millidegrees)
+	Dj           uint32 // j direction increment (millidegrees)
+	ScanningMode uint8  // Scanning mode (Table 3.4)
 }
 
 // ParseLatLonGrid parses a Lat/Lon grid from template data (Template 3.0).
@@ -108,8 +108,8 @@ func (g *LatLonGrid) Increment() (di, dj float64) {
 //   - jPositive: true if points scan in +j direction (south to north)
 //   - consecutive: true if adjacent points in i direction are consecutive
 func (g *LatLonGrid) ScanningFlags() (iNegative, jPositive, consecutive bool) {
-	iNegative = (g.ScanningMode & 0x80) != 0  // Bit 0
-	jPositive = (g.ScanningMode & 0x40) != 0  // Bit 1
+	iNegative = (g.ScanningMode & 0x80) != 0   // Bit 0
+	jPositive = (g.ScanningMode & 0x40) != 0   // Bit 1
 	consecutive = (g.ScanningMode & 0x20) == 0 // Bit 2 (0 = consecutive)
 	return
 }

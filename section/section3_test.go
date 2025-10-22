@@ -104,11 +104,11 @@ func makeSection3LatLonData(ni, nj uint32, la1, lo1, la2, lo2 int32) []byte {
 
 func TestParseSection3LatLon(t *testing.T) {
 	data := makeSection3LatLonData(
-		144, 73,      // 144x73 grid (2.5 degree global)
-		90000,        // La1 = 90°N
-		0,            // Lo1 = 0°E
-		-90000,       // La2 = 90°S
-		357500,       // Lo2 = 357.5°E
+		144, 73, // 144x73 grid (2.5 degree global)
+		90000,  // La1 = 90°N
+		0,      // Lo1 = 0°E
+		-90000, // La2 = 90°S
+		357500, // Lo2 = 357.5°E
 	)
 
 	sec3, err := ParseSection3(data)
