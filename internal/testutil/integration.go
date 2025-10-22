@@ -11,15 +11,13 @@ type IntegrationTestResult struct {
 	FileName string
 
 	// Field comparisons
-	TotalFields        int
-	FieldsCompared     int
-	Wgrib2Comparisons  []*ComparisonResult
-	GoGrib2Comparisons []*ComparisonResult
+	TotalFields       int
+	FieldsCompared    int
+	Wgrib2Comparisons []*ComparisonResult
 
 	// Summary
-	AllWgrib2Match  bool
-	AllGoGrib2Match bool
-	Errors          []string
+	AllWgrib2Match bool
+	Errors         []string
 }
 
 // CompareImplementations compares squall against wgrib2 for a given GRIB2 file.
@@ -31,11 +29,9 @@ type IntegrationTestResult struct {
 // since different implementations use different naming conventions.
 func CompareImplementations(gribFile string, maxULP int64) (*IntegrationTestResult, error) {
 	result := &IntegrationTestResult{
-		FileName:           gribFile,
-		Wgrib2Comparisons:  []*ComparisonResult{},
-		GoGrib2Comparisons: []*ComparisonResult{},
-		AllWgrib2Match:     true,
-		AllGoGrib2Match:    true,
+		FileName:          gribFile,
+		Wgrib2Comparisons: []*ComparisonResult{},
+		AllWgrib2Match:    true,
 	}
 
 	// Parse with squall (our implementation)
@@ -53,7 +49,7 @@ func CompareImplementations(gribFile string, maxULP int64) (*IntegrationTestResu
 		result.Errors = append(result.Errors, fmt.Sprintf("wgrib2 parse failed: %v", err))
 	} else {
 		// Compare squall vs wgrib2 message by message
-		compareArrays(mgribFields, wgrib2Fields, maxULP, result, true)
+		compareArrays(mgribFields, wgrib2Fields, maxULP, result)
 	}
 
 	return result, nil
@@ -68,18 +64,13 @@ func compareArrays(
 	mgribFields, refFields []*FieldData,
 	maxULP int64,
 	result *IntegrationTestResult,
-	isWgrib2 bool,
 ) {
 	// Check if arrays have same length
 	if len(mgribFields) != len(refFields) {
 		result.Errors = append(result.Errors,
 			fmt.Sprintf("message count mismatch: squall has %d, reference has %d",
 				len(mgribFields), len(refFields)))
-		if isWgrib2 {
-			result.AllWgrib2Match = false
-		} else {
-			result.AllGoGrib2Match = false
-		}
+		result.AllWgrib2Match = false
 		// Still compare what we can
 	}
 
@@ -101,16 +92,9 @@ func compareArrays(
 		// Only fail on data mismatches, not metadata (field names differ between implementations)
 		dataFailed := !comparison.CoordinatesMatch || !comparison.DataMatch
 
-		if isWgrib2 {
-			result.Wgrib2Comparisons = append(result.Wgrib2Comparisons, comparison)
-			if dataFailed {
-				result.AllWgrib2Match = false
-			}
-		} else {
-			result.GoGrib2Comparisons = append(result.GoGrib2Comparisons, comparison)
-			if dataFailed {
-				result.AllGoGrib2Match = false
-			}
+		result.Wgrib2Comparisons = append(result.Wgrib2Comparisons, comparison)
+		if dataFailed {
+			result.AllWgrib2Match = false
 		}
 
 		result.FieldsCompared++
@@ -135,24 +119,6 @@ func (r *IntegrationTestResult) String() string {
 
 		for _, comp := range r.Wgrib2Comparisons {
 			if !comp.MetadataMatch || !comp.CoordinatesMatch || !comp.DataMatch {
-				b.WriteString(comp.String())
-				b.WriteString("\n")
-			}
-		}
-	}
-
-	// Go-grib2 comparison
-	if len(r.GoGrib2Comparisons) > 0 {
-		b.WriteString("=== Comparison vs go-grib2 ===\n")
-		if r.AllGoGrib2Match {
-			b.WriteString("✓ All data and coordinates match within tolerance\n")
-		} else {
-			b.WriteString("✗ Some messages have data/coordinate differences\n")
-		}
-
-		// Only show failures in data or coordinates (not metadata, since field names differ)
-		for _, comp := range r.GoGrib2Comparisons {
-			if !comp.CoordinatesMatch || !comp.DataMatch {
 				b.WriteString(comp.String())
 				b.WriteString("\n")
 			}

@@ -4,10 +4,9 @@ This package provides utilities for validating the squall library against refere
 
 ## Overview
 
-The testing framework compares squall against two reference implementations:
+The testing framework compares squall against the wgrib2 reference implementation:
 
 1. **wgrib2** - NOAA's reference GRIB2 tool (C implementation)
-2. **go-grib2** - Existing Go GRIB2 library
 
 ## Usage
 
@@ -16,7 +15,7 @@ The testing framework compares squall against two reference implementations:
 ```go
 import "github.com/mmp/squall/internal/testutil"
 
-// Compare against both reference implementations
+// Compare against wgrib2 reference implementation
 result, err := testutil.CompareImplementations("path/to/file.grib2", 100)
 if err != nil {
     panic(err)
@@ -34,10 +33,7 @@ if result.Passed() {
 
 ```go
 // Parse with wgrib2
-wgrib2Fields, err := testutil.ParseWgrib2CSV("file.grib2")
-
-// Parse with go-grib2
-goGrib2Fields, err := testutil.ParseGoGrib2("file.grib2")
+wgrib2Fields, err := testutil.ParseWgrib2("file.grib2")
 
 // Parse with squall
 squallFields, err := testutil.ParseMgrib2("file.grib2")
@@ -94,8 +90,7 @@ go test -v -run TestIntegrationWithRealFiles/sample.grib2
 
 ### Parsers
 
-- **wgrib2.go**: Executes wgrib2 and parses CSV output
-- **gogrib2.go**: Wraps go-grib2 library
+- **wgrib2.go**: Executes wgrib2 and parses output
 - **squall.go**: Wraps squall library (this implementation)
 
 ### Comparison
@@ -119,14 +114,6 @@ The wgrib2 binary must be available at `/Users/mmp/bin/wgrib2`. To customize:
 testutil.Wgrib2Path = "/path/to/wgrib2"
 ```
 
-### go-grib2
-
-The go-grib2 library must be available:
-
-```bash
-go get github.com/mmp/go-grib2
-```
-
 ## Example Output
 
 ```
@@ -134,9 +121,6 @@ Integration Test Results: testdata/sample.grib2
 Total fields: 10, Compared: 10
 
 === Comparison vs wgrib2 ===
-✓ All fields match within tolerance
-
-=== Comparison vs go-grib2 ===
 ✓ All fields match within tolerance
 ```
 

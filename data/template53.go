@@ -329,7 +329,7 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float32, error)
 // First-order differencing: Y[n] = X[n] - X[n-1]
 // Reversal: X[n] = X[n-1] + Y[n] + min_val
 //
-// Per GRIB2 spec and reference implementations (wgrib2, go-grib2):
+// Per GRIB2 spec and wgrib2 reference implementation:
 // - The first n values in the packed data are set to zero (placeholders)
 // - These are replaced in-place with the firstVals (extra descriptors)
 // - The differencing formula is applied starting from index n
@@ -362,7 +362,7 @@ func (t *Template53) reverseSpatialDifferencing1(diffVals []int32, firstVals []i
 //
 // Reversal: X[n] = Z[n] + 2*X[n-1] - X[n-2] + min_val
 //
-// Per GRIB2 spec and reference implementations (wgrib2, go-grib2):
+// Per GRIB2 spec and wgrib2 reference implementation:
 // - The first n values in the packed data are set to zero (placeholders)
 // - These are replaced in-place with the firstVals (extra descriptors)
 // - The differencing formula is applied starting from index n
