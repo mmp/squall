@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mmp/mgrib2"
+	grib "github.com/mmp/mgrib2"
 )
 
-// ParseMgrib2 parses a GRIB2 file using the mgrib2 library (this implementation).
+// ParseMgrib2 parses a GRIB2 file using squall (this implementation).
 //
 // Returns an array of FieldData structures in message order.
 func ParseMgrib2(gribFile string) ([]*FieldData, error) {
@@ -19,12 +19,12 @@ func ParseMgrib2(gribFile string) ([]*FieldData, error) {
 	}
 	defer file.Close()
 
-	// Parse with mgrib2 (use sequential + skip errors for robustness)
-	fields, err := mgrib2.ReadWithOptions(file,
-		mgrib2.WithSequential(),
-		mgrib2.WithSkipErrors())
+	// Parse with squall (use sequential + skip errors for robustness)
+	fields, err := grib.ReadWithOptions(file,
+		grib.WithSequential(),
+		grib.WithSkipErrors())
 	if err != nil {
-		return nil, fmt.Errorf("mgrib2 parse failed: %v", err)
+		return nil, fmt.Errorf("squall parse failed: %v", err)
 	}
 
 	// Convert to FieldData array (preserving message order)
@@ -43,7 +43,7 @@ func ParseMgrib2(gribFile string) ([]*FieldData, error) {
 			Latitudes:  field.Latitudes,
 			Longitudes: field.Longitudes,
 			Values:     field.Data,
-			Source:     "mgrib2",
+			Source:     "squall",
 		}
 
 		fieldArray = append(fieldArray, fd)

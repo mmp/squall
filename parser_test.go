@@ -1,4 +1,4 @@
-package mgrib2
+package grib
 
 import (
 	"testing"

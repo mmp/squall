@@ -1,4 +1,4 @@
-package mgrib2_test
+package grib_test
 
 import (
 	"bytes"
@@ -8,19 +8,19 @@ import (
 	"os"
 	"time"
 
-	"github.com/mmp/mgrib2"
+	grib "github.com/mmp/mgrib2"
 )
 
-// Example_basic demonstrates basic usage of the GRIB2 library with streaming.
+// Example_basic demonstrates basic usage of squall, the GRIB2 library, with streaming.
 func Example_basic() {
 	// Open GRIB2 file (not shown: error handling for demonstration)
 	// file, _ := os.Open("forecast.grib2")
 	// defer file.Close()
 
 	// For this example, we'll use a placeholder
-	// In real code, you would use: fields, err := mgrib2.Read(file)
+	// In real code, you would use: fields, err := grib.Read(file)
 	data := []byte{} // placeholder
-	fields, err := mgrib2.Read(bytes.NewReader(data))
+	fields, err := grib.Read(bytes.NewReader(data))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func Example_streaming() {
 
 	// Parse messages directly from the file stream
 	// Individual messages are read into memory as needed, but not the entire file
-	fields, err := mgrib2.Read(file)
+	fields, err := grib.Read(file)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -60,8 +60,8 @@ func Example_parallel() {
 	data := []byte{} // placeholder
 
 	// Use 4 workers for parallel parsing
-	fields, err := mgrib2.ReadWithOptions(bytes.NewReader(data),
-		mgrib2.WithWorkers(4),
+	fields, err := grib.ReadWithOptions(bytes.NewReader(data),
+		grib.WithWorkers(4),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -75,8 +75,8 @@ func Example_filtering() {
 	data := []byte{} // placeholder
 
 	// Only read temperature fields (category 0)
-	fields, err := mgrib2.ReadWithOptions(bytes.NewReader(data),
-		mgrib2.WithParameterCategory(0),
+	fields, err := grib.ReadWithOptions(bytes.NewReader(data),
+		grib.WithParameterCategory(0),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -95,8 +95,8 @@ func Example_context() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	fields, err := mgrib2.ReadWithOptions(bytes.NewReader(data),
-		mgrib2.WithContext(ctx),
+	fields, err := grib.ReadWithOptions(bytes.NewReader(data),
+		grib.WithContext(ctx),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -109,7 +109,7 @@ func Example_context() {
 func Example_coordinates() {
 	data := []byte{} // placeholder
 
-	fields, err := mgrib2.Read(bytes.NewReader(data))
+	fields, err := grib.Read(bytes.NewReader(data))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -145,7 +145,7 @@ func Example_customFilter() {
 	data := []byte{} // placeholder
 
 	// Custom filter: only operational forecasts from NCEP
-	filter := func(msg *mgrib2.Message) bool {
+	filter := func(msg *grib.Message) bool {
 		if msg.Section1 == nil {
 			return false
 		}
@@ -160,8 +160,8 @@ func Example_customFilter() {
 		return true
 	}
 
-	fields, err := mgrib2.ReadWithOptions(bytes.NewReader(data),
-		mgrib2.WithFilter(filter),
+	fields, err := grib.ReadWithOptions(bytes.NewReader(data),
+		grib.WithFilter(filter),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -178,12 +178,12 @@ func Example_multipleOptions() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	fields, err := mgrib2.ReadWithOptions(bytes.NewReader(data),
-		mgrib2.WithWorkers(8),
-		mgrib2.WithContext(ctx),
-		mgrib2.WithParameterCategory(0), // Temperature
-		mgrib2.WithDiscipline(0),        // Meteorological
-		mgrib2.WithCenter(7),            // NCEP
+	fields, err := grib.ReadWithOptions(bytes.NewReader(data),
+		grib.WithWorkers(8),
+		grib.WithContext(ctx),
+		grib.WithParameterCategory(0), // Temperature
+		grib.WithDiscipline(0),        // Meteorological
+		grib.WithCenter(7),            // NCEP
 	)
 	if err != nil {
 		log.Fatal(err)

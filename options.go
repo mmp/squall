@@ -1,4 +1,4 @@
-package mgrib2
+package grib
 
 import (
 	"context"
@@ -34,7 +34,7 @@ func defaultReadConfig() readConfig {
 //
 // Example:
 //
-//	fields, _ := mgrib2.ReadWithOptions(data, WithWorkers(4))
+//	fields, _ := grib.ReadWithOptions(data, WithWorkers(4))
 func WithWorkers(workers int) ReadOption {
 	return func(c *readConfig) {
 		c.workers = workers
@@ -48,7 +48,7 @@ func WithWorkers(workers int) ReadOption {
 //
 // Example:
 //
-//	fields, _ := mgrib2.ReadWithOptions(data, WithSequential())
+//	fields, _ := grib.ReadWithOptions(data, WithSequential())
 func WithSequential() ReadOption {
 	return func(c *readConfig) {
 		c.sequential = true
@@ -63,7 +63,7 @@ func WithSequential() ReadOption {
 //
 //	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 //	defer cancel()
-//	fields, _ := mgrib2.ReadWithOptions(data, WithContext(ctx))
+//	fields, _ := grib.ReadWithOptions(data, WithContext(ctx))
 func WithContext(ctx context.Context) ReadOption {
 	return func(c *readConfig) {
 		c.ctx = ctx
@@ -77,7 +77,7 @@ func WithContext(ctx context.Context) ReadOption {
 //
 // Example:
 //
-//	fields, _ := mgrib2.ReadWithOptions(data, WithSkipErrors())
+//	fields, _ := grib.ReadWithOptions(data, WithSkipErrors())
 func WithSkipErrors() ReadOption {
 	return func(c *readConfig) {
 		c.skipErrors = true
@@ -97,7 +97,7 @@ func WithSkipErrors() ReadOption {
 //	filter := func(msg *Message) bool {
 //	    return msg.Section4.Product.GetParameterCategory() == 0
 //	}
-//	fields, _ := mgrib2.ReadWithOptions(data, WithFilter(filter))
+//	fields, _ := grib.ReadWithOptions(data, WithFilter(filter))
 func WithFilter(filter func(*Message) bool) ReadOption {
 	return func(c *readConfig) {
 		c.filter = filter
@@ -111,7 +111,7 @@ func WithFilter(filter func(*Message) bool) ReadOption {
 // Example:
 //
 //	// Only temperature parameters (category 0)
-//	fields, _ := mgrib2.ReadWithOptions(data, WithParameterCategory(0))
+//	fields, _ := grib.ReadWithOptions(data, WithParameterCategory(0))
 func WithParameterCategory(category uint8) ReadOption {
 	return WithFilter(func(msg *Message) bool {
 		if msg.Section4 == nil || msg.Section4.Product == nil {
@@ -126,7 +126,7 @@ func WithParameterCategory(category uint8) ReadOption {
 // Example:
 //
 //	// Temperature (category 0, number 0)
-//	fields, _ := mgrib2.ReadWithOptions(data,
+//	fields, _ := grib.ReadWithOptions(data,
 //	    WithParameterCategory(0),
 //	    WithParameterNumber(0))
 func WithParameterNumber(number uint8) ReadOption {
@@ -143,7 +143,7 @@ func WithParameterNumber(number uint8) ReadOption {
 // Example:
 //
 //	// Only meteorological products (discipline 0)
-//	fields, _ := mgrib2.ReadWithOptions(data, WithDiscipline(0))
+//	fields, _ := grib.ReadWithOptions(data, WithDiscipline(0))
 func WithDiscipline(discipline uint8) ReadOption {
 	return WithFilter(func(msg *Message) bool {
 		if msg.Section0 == nil {
@@ -158,7 +158,7 @@ func WithDiscipline(discipline uint8) ReadOption {
 // Example:
 //
 //	// Only NCEP data (center 7)
-//	fields, _ := mgrib2.ReadWithOptions(data, WithCenter(7))
+//	fields, _ := grib.ReadWithOptions(data, WithCenter(7))
 func WithCenter(center uint16) ReadOption {
 	return WithFilter(func(msg *Message) bool {
 		if msg.Section1 == nil {

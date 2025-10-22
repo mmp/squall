@@ -1,4 +1,4 @@
-// Package internal provides internal utilities for the mgrib2 library.
+// Package internal provides internal utilities for squall.
 package internal
 
 import (

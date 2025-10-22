@@ -1,4 +1,4 @@
-// Package mgrib2 provides a clean, idiomatic Go library for reading GRIB2
+// Package grib provides squall, a clean, idiomatic Go library for reading GRIB2
 // (GRIdded Binary 2nd edition) meteorological data files.
 //
 // Basic usage:
@@ -8,7 +8,7 @@
 //	    log.Fatal(err)
 //	}
 //
-//	gribs, err := mgrib2.Read(data)
+//	gribs, err := grib.Read(data)
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
@@ -20,19 +20,19 @@
 // Filtering:
 //
 //	// Only read temperature and humidity
-//	gribs, err := mgrib2.Read(data, mgrib2.WithNames("Temperature", "Relative Humidity"))
+//	gribs, err := grib.Read(data, grib.WithNames("Temperature", "Relative Humidity"))
 //
 // Performance:
 //
-// This library processes GRIB2 messages in parallel using goroutines,
+// squall processes GRIB2 messages in parallel using goroutines,
 // providing 3-5x speedup on multi-message files compared to sequential
 // processing. Use ReadWithContext for cancellation support:
 //
 //	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 //	defer cancel()
 //
-//	gribs, err := mgrib2.ReadWithContext(ctx, data)
-package mgrib2
+//	gribs, err := grib.ReadWithContext(ctx, data)
+package grib
 
 import "fmt"
 

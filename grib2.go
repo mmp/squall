@@ -1,4 +1,4 @@
-package mgrib2
+package grib
 
 import (
 	"fmt"
@@ -67,7 +67,7 @@ type GRIB2 struct {
 //
 //	file, _ := os.Open("forecast.grib2")
 //	defer file.Close()
-//	fields, err := mgrib2.Read(file)
+//	fields, err := grib.Read(file)
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
@@ -126,7 +126,7 @@ type coordinateCache struct {
 //
 //	file, _ := os.Open("forecast.grib2")
 //	defer file.Close()
-//	fields, err := mgrib2.ReadWithOptions(file,
+//	fields, err := grib.ReadWithOptions(file,
 //	    WithWorkers(4),
 //	    WithParameter("Temperature"),
 //	)
