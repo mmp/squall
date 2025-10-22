@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/mmp/mgrib2/internal"
+	"github.com/mmp/squall/internal"
 )
 
 // LambertConformalGrid represents Grid Definition Template 3.30:

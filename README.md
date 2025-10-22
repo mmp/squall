@@ -1,7 +1,7 @@
 # squall - High-Performance GRIB2 Parser for Go
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/mmp/mgrib2.svg)](https://pkg.go.dev/github.com/mmp/mgrib2)
-[![Go Report Card](https://goreportcard.com/badge/github.com/mmp/mgrib2)](https://goreportcard.com/report/github.com/mmp/mgrib2)
+[![Go Reference](https://pkg.go.dev/badge/github.com/mmp/squall.svg)](https://pkg.go.dev/github.com/mmp/squall)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mmp/squall)](https://goreportcard.com/report/github.com/mmp/squall)
 
 **squall** is a clean, idiomatic Go library for reading GRIB2 (GRIdded Binary 2nd edition) meteorological data files. It provides blazing-fast parallel decoding with a simple, ergonomic API.
 
@@ -18,7 +18,7 @@
 ## Installation
 
 ```bash
-go get github.com/mmp/mgrib2
+go get github.com/mmp/squall
 ```
 
 ## Quick Start
@@ -31,7 +31,7 @@ import (
     "log"
     "os"
 
-    grib "github.com/mmp/mgrib2"
+    grib "github.com/mmp/squall"
 )
 
 func main() {
@@ -134,7 +134,7 @@ Performance optimizations:
 The `gribinfo` tool provides quick inspection of GRIB2 files:
 
 ```bash
-go install github.com/mmp/mgrib2/cmd/gribinfo@latest
+go install github.com/mmp/squall/cmd/gribinfo@latest
 
 gribinfo forecast.grib2
 ```
@@ -209,7 +209,7 @@ Key design principles:
 
 ## Documentation
 
-- **[API Reference](https://pkg.go.dev/github.com/mmp/mgrib2)** - Complete godoc
+- **[API Reference](https://pkg.go.dev/github.com/mmp/squall)** - Complete godoc
 - **[Implementation Plan](docs/IMPLEMENTATION_PLAN.md)** - Architecture and phases
 - **[Design Principles](docs/DESIGN_PRINCIPLES.md)** - Why we built it this way
 - **[GRIB2 Specification](docs/GRIB2_SPEC.md)** - Format reference

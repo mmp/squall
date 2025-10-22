@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	grib "github.com/mmp/mgrib2"
+	grib "github.com/mmp/squall"
 )
 
 // ParseMgrib2 parses a GRIB2 file using squall (this implementation).

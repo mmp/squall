@@ -3,8 +3,8 @@ package section
 import (
 	"fmt"
 
-	"github.com/mmp/mgrib2/data"
-	"github.com/mmp/mgrib2/internal"
+	"github.com/mmp/squall/data"
+	"github.com/mmp/squall/internal"
 )
 
 // Section5 represents the GRIB2 Data Representation Section (Section 5).

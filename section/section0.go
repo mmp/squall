@@ -4,8 +4,8 @@ package section
 import (
 	"fmt"
 
-	"github.com/mmp/mgrib2/internal"
-	"github.com/mmp/mgrib2/tables"
+	"github.com/mmp/squall/internal"
+	"github.com/mmp/squall/tables"
 )
 
 // Section0 represents the GRIB2 Indicator Section (Section 0).

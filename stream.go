@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/mmp/mgrib2/section"
+	"github.com/mmp/squall/section"
 )
 
 // FindMessagesInStream scans an io.ReadSeeker for GRIB2 message boundaries.

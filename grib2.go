@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mmp/mgrib2/grid"
-	"github.com/mmp/mgrib2/product"
-	"github.com/mmp/mgrib2/tables"
+	"github.com/mmp/squall/grid"
+	"github.com/mmp/squall/product"
+	"github.com/mmp/squall/tables"
 )
 
 // GRIB2 represents a single meteorological field from a GRIB2 message.

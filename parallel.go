@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/mmp/mgrib2/internal"
+	"github.com/mmp/squall/internal"
 )
 
 // ParseMessages parses multiple GRIB2 messages from a byte slice in parallel.

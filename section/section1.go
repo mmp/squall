@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mmp/mgrib2/internal"
-	"github.com/mmp/mgrib2/tables"
+	"github.com/mmp/squall/internal"
+	"github.com/mmp/squall/tables"
 )
 
 // Section1 represents the GRIB2 Identification Section (Section 1).

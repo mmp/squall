@@ -3,7 +3,7 @@ package grib
 import (
 	"fmt"
 
-	"github.com/mmp/mgrib2/section"
+	"github.com/mmp/squall/section"
 )
 
 // Message represents a complete parsed GRIB2 message.

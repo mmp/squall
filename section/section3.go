@@ -3,8 +3,8 @@ package section
 import (
 	"fmt"
 
-	"github.com/mmp/mgrib2/grid"
-	"github.com/mmp/mgrib2/internal"
+	"github.com/mmp/squall/grid"
+	"github.com/mmp/squall/internal"
 )
 
 // Section3 represents the GRIB2 Grid Definition Section (Section 3).

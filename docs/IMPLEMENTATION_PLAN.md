@@ -1,4 +1,4 @@
-# mgrib2: Clean GRIB2 Library Implementation Plan
+# squall: Clean GRIB2 Library Implementation Plan
 
 ## Executive Summary
 
@@ -162,7 +162,7 @@ The GRIB2 format uses numerous code tables (WMO standard):
 ## Package Structure
 
 ```
-mgrib2/
+squall/
 ├── grib2.go                    # Public API (Read function, GRIB2 type)
 ├── options.go                  # ReadOption and configuration
 ├── record.go                   # Record type and basic operations
@@ -732,7 +732,7 @@ switch(code) {
 }
 ```
 
-**Pattern (mgrib2):**
+**Pattern (squall):**
 ```go
 var parameterNames = map[int]string{
     0: "Temperature",

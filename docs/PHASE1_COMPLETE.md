@@ -4,7 +4,7 @@
 
 ## Summary
 
-Phase 1 of the mgrib2 implementation is complete. All deliverables have been implemented, tested, and validated.
+Phase 1 of the squall implementation is complete. All deliverables have been implemented, tested, and validated.
 
 ## Deliverables
 
@@ -109,9 +109,9 @@ Test coverage includes:
 ```
 $ go test ./... -cover
 
-ok  	github.com/mmp/mgrib2	        1.835s	coverage: 68.9% of statements
-ok  	github.com/mmp/mgrib2/internal	3.532s	coverage: 83.7% of statements
-ok  	github.com/mmp/mgrib2/section	2.623s	coverage: 100.0% of statements
+ok  	github.com/mmp/squall	        1.835s	coverage: 68.9% of statements
+ok  	github.com/mmp/squall/internal	3.532s	coverage: 83.7% of statements
+ok  	github.com/mmp/squall/section	2.623s	coverage: 100.0% of statements
 ```
 
 **All 55 tests passing ✅**
@@ -147,18 +147,18 @@ ok  	github.com/mmp/mgrib2/section	2.623s	coverage: 100.0% of statements
 ## Files Created
 
 ### Implementation
-- `/Users/mmp/mgrib2/errors.go`
-- `/Users/mmp/mgrib2/internal/binary.go`
-- `/Users/mmp/mgrib2/section/section0.go`
-- `/Users/mmp/mgrib2/parser.go`
+- `/Users/mmp/squall/errors.go`
+- `/Users/mmp/squall/internal/binary.go`
+- `/Users/mmp/squall/section/section0.go`
+- `/Users/mmp/squall/parser.go`
 
 ### Tests
-- `/Users/mmp/mgrib2/internal/binary_test.go`
-- `/Users/mmp/mgrib2/section/section0_test.go`
-- `/Users/mmp/mgrib2/parser_test.go`
+- `/Users/mmp/squall/internal/binary_test.go`
+- `/Users/mmp/squall/section/section0_test.go`
+- `/Users/mmp/squall/parser_test.go`
 
 ### Configuration
-- `/Users/mmp/mgrib2/go.mod`
+- `/Users/mmp/squall/go.mod`
 
 ## What's Next: Phase 2
 

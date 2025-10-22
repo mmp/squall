@@ -1,3 +1,3 @@
-module github.com/mmp/mgrib2
+module github.com/mmp/squall
 
 go 1.25.3

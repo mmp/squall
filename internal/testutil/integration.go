@@ -22,7 +22,7 @@ type IntegrationTestResult struct {
 	Errors          []string
 }
 
-// CompareImplementations compares mgrib2 against wgrib2 for a given GRIB2 file.
+// CompareImplementations compares squall against wgrib2 for a given GRIB2 file.
 //
 // maxULP specifies the maximum ULP difference allowed for floating-point comparisons.
 // Typically 10-100 ULPs is reasonable for numerical accuracy differences.
@@ -38,10 +38,10 @@ func CompareImplementations(gribFile string, maxULP int64) (*IntegrationTestResu
 		AllGoGrib2Match:    true,
 	}
 
-	// Parse with mgrib2 (our implementation)
+	// Parse with squall (our implementation)
 	mgribFields, err := ParseMgrib2(gribFile)
 	if err != nil {
-		result.Errors = append(result.Errors, fmt.Sprintf("mgrib2 parse failed: %v", err))
+		result.Errors = append(result.Errors, fmt.Sprintf("squall parse failed: %v", err))
 		return result, nil // Return result with error, don't fail completely
 	}
 
@@ -52,7 +52,7 @@ func CompareImplementations(gribFile string, maxULP int64) (*IntegrationTestResu
 	if err != nil {
 		result.Errors = append(result.Errors, fmt.Sprintf("wgrib2 parse failed: %v", err))
 	} else {
-		// Compare mgrib2 vs wgrib2 message by message
+		// Compare squall vs wgrib2 message by message
 		compareArrays(mgribFields, wgrib2Fields, maxULP, result, true)
 	}
 

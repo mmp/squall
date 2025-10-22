@@ -4,7 +4,7 @@
 
 ## Summary
 
-Phase 2 of the mgrib2 implementation is complete. All critical WMO code tables have been implemented using a data-driven approach, establishing the foundation for metadata decoding in subsequent phases.
+Phase 2 of the squall implementation is complete. All critical WMO code tables have been implemented using a data-driven approach, establishing the foundation for metadata decoding in subsequent phases.
 
 ## Deliverables
 
@@ -108,10 +108,10 @@ All implement the `Table` interface with methods:
 ```
 $ go test ./... -cover
 
-ok  	github.com/mmp/mgrib2	        1.219s	coverage: 68.9% of statements
-ok  	github.com/mmp/mgrib2/internal	(cached)	coverage: 83.7% of statements
-ok  	github.com/mmp/mgrib2/section	1.982s	coverage: 100.0% of statements
-ok  	github.com/mmp/mgrib2/tables	2.810s	coverage: 76.7% of statements
+ok  	github.com/mmp/squall	        1.219s	coverage: 68.9% of statements
+ok  	github.com/mmp/squall/internal	(cached)	coverage: 83.7% of statements
+ok  	github.com/mmp/squall/section	1.982s	coverage: 100.0% of statements
+ok  	github.com/mmp/squall/tables	2.810s	coverage: 76.7% of statements
 ```
 
 **All 66 tests passing ✅**
@@ -150,7 +150,7 @@ ok  	github.com/mmp/mgrib2/tables	2.810s	coverage: 76.7% of statements
 
 ## Comparison with wgrib2
 
-| Aspect | wgrib2 | mgrib2 (Phase 2) |
+| Aspect | wgrib2 | squall (Phase 2) |
 |--------|--------|------------------|
 | **Table Storage** | C switch statements in .dat files | Go data structures |
 | **Lookup Speed** | O(n) linear search | O(1) map lookup |
@@ -162,19 +162,19 @@ ok  	github.com/mmp/mgrib2/tables	2.810s	coverage: 76.7% of statements
 ## Files Created
 
 ### Implementation
-- `/Users/mmp/mgrib2/tables/tables.go`
-- `/Users/mmp/mgrib2/tables/discipline.go`
-- `/Users/mmp/mgrib2/tables/center.go`
-- `/Users/mmp/mgrib2/tables/time.go`
-- `/Users/mmp/mgrib2/tables/level.go`
-- `/Users/mmp/mgrib2/tables/parameter.go`
+- `/Users/mmp/squall/tables/tables.go`
+- `/Users/mmp/squall/tables/discipline.go`
+- `/Users/mmp/squall/tables/center.go`
+- `/Users/mmp/squall/tables/time.go`
+- `/Users/mmp/squall/tables/level.go`
+- `/Users/mmp/squall/tables/parameter.go`
 
 ### Tests
-- `/Users/mmp/mgrib2/tables/tables_test.go`
+- `/Users/mmp/squall/tables/tables_test.go`
 
 ### Updates
-- `/Users/mmp/mgrib2/section/section0.go` (integrated with tables package)
-- `/Users/mmp/mgrib2/section/section0_test.go` (updated expectations)
+- `/Users/mmp/squall/section/section0.go` (integrated with tables package)
+- `/Users/mmp/squall/section/section0_test.go` (updated expectations)
 
 ## What Was Skipped
 

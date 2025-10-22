@@ -3,7 +3,7 @@ package section
 import (
 	"fmt"
 
-	"github.com/mmp/mgrib2/internal"
+	"github.com/mmp/squall/internal"
 )
 
 // Section2 represents the GRIB2 Local Use Section (Section 2).

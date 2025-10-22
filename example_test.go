@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	grib "github.com/mmp/mgrib2"
+	grib "github.com/mmp/squall"
 )
 
 // Example_basic demonstrates basic usage of squall, the GRIB2 library, with streaming.

@@ -1,6 +1,6 @@
-# mgrib2 Design Principles
+# squall Design Principles
 
-This document outlines the core design principles that guide the implementation of mgrib2, contrasting them with anti-patterns found in wgrib2 and go-grib2.
+This document outlines the core design principles that guide the implementation of squall, contrasting them with anti-patterns found in wgrib2 and go-grib2.
 
 ## Core Principles
 
@@ -604,7 +604,7 @@ docs/user_guide.md       (usage)
 **Solution:** Godoc-first approach:
 
 ```go
-// Package mgrib2 provides a clean, idiomatic Go library for reading GRIB2
+// Package squall provides a clean, idiomatic Go library for reading GRIB2
 // (GRIdded Binary 2nd edition) meteorological data files.
 //
 // Basic usage:
@@ -614,7 +614,7 @@ docs/user_guide.md       (usage)
 //      log.Fatal(err)
 //  }
 //
-//  gribs, err := mgrib2.Read(data)
+//  gribs, err := squall.Read(data)
 //  if err != nil {
 //      log.Fatal(err)
 //  }
@@ -626,7 +626,7 @@ docs/user_guide.md       (usage)
 // Filtering:
 //
 //  // Only read temperature and humidity
-//  gribs, err := mgrib2.Read(data, mgrib2.WithNames("Temperature", "Relative Humidity"))
+//  gribs, err := squall.Read(data, squall.WithNames("Temperature", "Relative Humidity"))
 //
 // Performance:
 //
@@ -637,9 +637,9 @@ docs/user_guide.md       (usage)
 //  ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 //  defer cancel()
 //
-//  gribs, err := mgrib2.ReadWithContext(ctx, data)
+//  gribs, err := squall.ReadWithContext(ctx, data)
 //
-package mgrib2
+package squall
 
 // GRIB2 represents a single decoded GRIB2 data field with metadata and values.
 //
@@ -717,7 +717,7 @@ type GRIB2 struct {
 
 ## Summary: Design Philosophy
 
-| Principle | wgrib2/go-grib2 | mgrib2 |
+| Principle | wgrib2/go-grib2 | squall |
 |-----------|-----------------|---------|
 | **Tables** | Switch statements in code | Data structures (maps) |
 | **Architecture** | Monolithic functions | Layered with clear interfaces |

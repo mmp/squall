@@ -8,7 +8,7 @@ import (
 	"runtime/pprof"
 	"time"
 
-	grib "github.com/mmp/mgrib2"
+	grib "github.com/mmp/squall"
 )
 
 type MemStats struct {
@@ -43,7 +43,7 @@ func formatBytes(b uint64) string {
 }
 
 func benchmarkMgrib2(filename string, cpuprofile string, memprofile string) error {
-	fmt.Printf("\n=== mgrib2: %s ===\n", filename)
+	fmt.Printf("\n=== squall: %s ===\n", filename)
 
 	// Force GC before starting
 	runtime.GC()
@@ -151,8 +151,8 @@ func main() {
 	}
 	fmt.Printf("File size: %s\n", formatBytes(uint64(info.Size())))
 
-	// Run mgrib2 benchmark
+	// Run squall benchmark
 	if err := benchmarkMgrib2(filename, *cpuprofile, *memprofile); err != nil {
-		fmt.Printf("mgrib2 error: %v\n", err)
+		fmt.Printf("squall error: %v\n", err)
 	}
 }

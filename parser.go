@@ -3,7 +3,7 @@ package grib
 import (
 	"fmt"
 
-	"github.com/mmp/mgrib2/section"
+	"github.com/mmp/squall/section"
 )
 
 // MessageBoundary represents the location and size of a GRIB2 message within a file.

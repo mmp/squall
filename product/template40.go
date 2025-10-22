@@ -3,7 +3,7 @@ package product
 import (
 	"fmt"
 
-	"github.com/mmp/mgrib2/internal"
+	"github.com/mmp/squall/internal"
 )
 
 // Template40 represents Product Definition Template 4.0:

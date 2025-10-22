@@ -1,6 +1,6 @@
-# Getting Started with mgrib2 Development
+# Getting Started with squall Development
 
-This guide helps you start implementing the mgrib2 library following the detailed [Implementation Plan](IMPLEMENTATION_PLAN.md).
+This guide helps you start implementing the squall library following the detailed [Implementation Plan](IMPLEMENTATION_PLAN.md).
 
 ## Prerequisites
 
@@ -13,8 +13,8 @@ This guide helps you start implementing the mgrib2 library following the detaile
 ### 1. Initialize Go Module
 
 ```bash
-cd /Users/mmp/mgrib2
-go mod init github.com/mmp/mgrib2
+cd /Users/mmp/squall
+go mod init github.com/mmp/squall
 ```
 
 ### 2. Create Directory Structure
@@ -30,7 +30,7 @@ mkdir -p section grid product data tables bitmap internal testdata examples
 Create `errors.go`:
 
 ```go
-package mgrib2
+package squall
 
 import "fmt"
 
@@ -209,7 +209,7 @@ package section
 import (
     "fmt"
 
-    "github.com/mmp/mgrib2/internal"
+    "github.com/mmp/squall/internal"
 )
 
 // Section0 represents the GRIB2 Indicator Section (Section 0)

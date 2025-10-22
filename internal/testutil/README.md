@@ -1,10 +1,10 @@
 # Integration Testing Utilities
 
-This package provides utilities for validating the mgrib2 library against reference implementations.
+This package provides utilities for validating the squall library against reference implementations.
 
 ## Overview
 
-The testing framework compares mgrib2 against two reference implementations:
+The testing framework compares squall against two reference implementations:
 
 1. **wgrib2** - NOAA's reference GRIB2 tool (C implementation)
 2. **go-grib2** - Existing Go GRIB2 library
@@ -14,7 +14,7 @@ The testing framework compares mgrib2 against two reference implementations:
 ### Basic Integration Test
 
 ```go
-import "github.com/mmp/mgrib2/internal/testutil"
+import "github.com/mmp/squall/internal/testutil"
 
 // Compare against both reference implementations
 result, err := testutil.CompareImplementations("path/to/file.grib2", 100)
@@ -39,8 +39,8 @@ wgrib2Fields, err := testutil.ParseWgrib2CSV("file.grib2")
 // Parse with go-grib2
 goGrib2Fields, err := testutil.ParseGoGrib2("file.grib2")
 
-// Parse with mgrib2
-mgrib2Fields, err := testutil.ParseMgrib2("file.grib2")
+// Parse with squall
+squallFields, err := testutil.ParseMgrib2("file.grib2")
 ```
 
 ### Manual Field Comparison
@@ -96,7 +96,7 @@ go test -v -run TestIntegrationWithRealFiles/sample.grib2
 
 - **wgrib2.go**: Executes wgrib2 and parses CSV output
 - **gogrib2.go**: Wraps go-grib2 library
-- **mgrib2.go**: Wraps mgrib2 library (this implementation)
+- **squall.go**: Wraps squall library (this implementation)
 
 ### Comparison
 

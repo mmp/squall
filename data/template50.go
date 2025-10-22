@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/mmp/mgrib2/internal"
+	"github.com/mmp/squall/internal"
 )
 
 // Template50 represents Data Representation Template 5.0: Simple Packing.

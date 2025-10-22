@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	grib "github.com/mmp/mgrib2"
-	"github.com/mmp/mgrib2/grid"
+	grib "github.com/mmp/squall"
+	"github.com/mmp/squall/grid"
 )
 
 var (

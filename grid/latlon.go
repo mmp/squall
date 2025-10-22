@@ -3,7 +3,7 @@ package grid
 import (
 	"fmt"
 
-	"github.com/mmp/mgrib2/internal"
+	"github.com/mmp/squall/internal"
 )
 
 // LatLonGrid represents a GRIB2 Latitude/Longitude grid (Template 3.0).

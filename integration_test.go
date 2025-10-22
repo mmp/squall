@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mmp/mgrib2/internal/testutil"
+	"github.com/mmp/squall/internal/testutil"
 )
 
 var (
@@ -14,7 +14,7 @@ var (
 	noSizeLimit = flag.Bool("no-size-limit", false, "Allow testing files of any size (default: 15MB limit)")
 )
 
-// TestIntegrationWithRealFiles tests mgrib2 against the wgrib2 reference implementation
+// TestIntegrationWithRealFiles tests squall against the wgrib2 reference implementation
 // using real GRIB2 files from the testgribs/ directory.
 //
 // This test validates decoded values, coordinates, and grid data against wgrib2
@@ -80,7 +80,7 @@ func testGRIB2File(t *testing.T, gribFile string) {
 
 	// Maximum ULP difference allowed
 	// Use reasonable tolerance for float32 precision comparison
-	// Both mgrib2 and wgrib2 output float32 values, so ULP comparison is meaningful
+	// Both squall and wgrib2 output float32 values, so ULP comparison is meaningful
 	maxULP := int64(100) // Allow for minor rounding differences in float32 arithmetic
 
 	// Run comparison
@@ -150,7 +150,7 @@ func printComparisonStats(t *testing.T, refName string, comparisons []*testutil.
 
 // Example test showing manual comparison
 func ExampleCompareImplementations() {
-	// Compare mgrib2 against reference implementations
+	// Compare squall against reference implementations
 	result, err := testutil.CompareImplementations("testgribs/sample.grib2", 100)
 	if err != nil {
 		panic(err)
