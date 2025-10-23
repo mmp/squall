@@ -158,74 +158,123 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float32, error)
 	}
 
 	bitReader := internal.NewBitReader(packedData)
-
-	// NumberOfDataValues represents the count of packed values in the data section.
-	// When a bitmap is present, this is the number of defined (non-missing) values,
-	// not the total grid size. The bitmap itself determines the total grid size.
 	ndata := t.NumberOfDataValues
 
-	// Read spatial difference reference values and min_val
-	// For Template 5.3 with spatial differencing:
-	// - First come the reference values (1 or 2 depending on order)
-	// - Then comes min_val (used as offset in spatial differencing)
-	// These values are stored as bytes (octets), not bit-packed like regular data values.
-	// The number of bytes per value is given by NumOctetsExtraDescriptors.
-	// IMPORTANT: The bitReader should already be byte-aligned at the start of Section 7 data.
+	// Read spatial difference metadata (firstVals and minVal)
+	firstVals, minVal, err := t.readSpatialDifferenceMetadata(bitReader)
+	if err != nil {
+		return nil, err
+	}
+
+	// Read group metadata (min values, widths, lengths)
+	groupMetadata, err := t.readGroupMetadata(bitReader)
+	if err != nil {
+		return nil, err
+	}
+
+	// Unpack data values from groups
+	unpackedVals, err := t.unpackGroupData(bitReader, ndata, groupMetadata)
+	if err != nil {
+		return nil, err
+	}
+
+	// Reverse spatial differencing
+	finalVals := t.applySpatialDifferencing(unpackedVals, firstVals, minVal)
+
+	// Apply scaling and convert to float32
+	if bitmap != nil {
+		return t.applyScalingWithBitmap(finalVals, bitmap)
+	}
+	return t.applyScalingWithoutBitmap(finalVals), nil
+}
+
+// groupMetadata holds metadata about data groups
+type groupMetadata struct {
+	minVals []int32
+	widths  []uint8
+	lengths []uint32
+}
+
+// readSpatialDifferenceMetadata reads spatial difference reference values and min_val
+func (t *Template53) readSpatialDifferenceMetadata(bitReader *internal.BitReader) ([]int32, int32, error) {
 	var firstVals []int32
 	var minVal int32
-	if t.SpatialDiffOrder == 1 || t.SpatialDiffOrder == 2 {
-		if t.NumOctetsExtraDescriptors == 0 {
-			// No extra descriptors, so no first values or min_val in data section
-			// This shouldn't happen for proper spatial differencing, but handle gracefully
-			return nil, fmt.Errorf("spatial differencing order %d requires NumOctetsExtraDescriptors > 0, got 0",
-				t.SpatialDiffOrder)
-		}
 
-		// Ensure byte alignment before reading extra descriptors
-		bitReader.Align()
+	if t.SpatialDiffOrder != 1 && t.SpatialDiffOrder != 2 {
+		return firstVals, minVal, nil
+	}
 
-		numFirstVals := int(t.SpatialDiffOrder)
-		firstVals = make([]int32, numFirstVals)
-		numOctets := int(t.NumOctetsExtraDescriptors)
+	if t.NumOctetsExtraDescriptors == 0 {
+		return nil, 0, fmt.Errorf("spatial differencing order %d requires NumOctetsExtraDescriptors > 0, got 0",
+			t.SpatialDiffOrder)
+	}
 
-		// Read first reference values (stored as bytes, not bit-packed)
-		for i := range numFirstVals {
-			val, err := bitReader.ReadBytes(numOctets)
-			if err != nil {
-				return nil, fmt.Errorf("failed to read first value %d: %w", i, err)
-			}
-			firstVals[i] = int32(val)
-		}
+	// Ensure byte alignment before reading extra descriptors
+	bitReader.Align()
 
-		// Read min_val (minimum value offset, stored as signed bytes using sign-magnitude encoding)
-		// GRIB2 uses sign-magnitude encoding for multi-byte signed integers
-		val, err := bitReader.ReadSignedBytesSignMagnitude(numOctets)
+	numFirstVals := int(t.SpatialDiffOrder)
+	firstVals = make([]int32, numFirstVals)
+	numOctets := int(t.NumOctetsExtraDescriptors)
+
+	// Read first reference values (stored as bytes, not bit-packed)
+	for i := range numFirstVals {
+		val, err := bitReader.ReadBytes(numOctets)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read min_val: %w", err)
+			return nil, 0, fmt.Errorf("failed to read first value %d: %w", i, err)
 		}
-		minVal = int32(val)
+		firstVals[i] = int32(val)
+	}
+
+	// Read min_val (minimum value offset, stored as signed bytes using sign-magnitude encoding)
+	val, err := bitReader.ReadSignedBytesSignMagnitude(numOctets)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to read min_val: %w", err)
+	}
+	minVal = int32(val)
+
+	return firstVals, minVal, nil
+}
+
+// readGroupMetadata reads group minimum values, widths, and lengths
+func (t *Template53) readGroupMetadata(bitReader *internal.BitReader) (*groupMetadata, error) {
+	metadata := &groupMetadata{
+		minVals: make([]int32, t.NumberOfGroups),
+		widths:  make([]uint8, t.NumberOfGroups),
+		lengths: make([]uint32, t.NumberOfGroups),
 	}
 
 	// Read minimum values for each group (group reference values)
-	groupMinVals := make([]int32, t.NumberOfGroups)
 	for i := uint32(0); i < t.NumberOfGroups; i++ {
 		val, err := bitReader.ReadBits(int(t.NumBitsPerValue))
 		if err != nil {
 			return nil, fmt.Errorf("failed to read group min value %d: %w", i, err)
 		}
-		groupMinVals[i] = int32(val)
+		metadata.minVals[i] = int32(val)
 	}
-	// Align to byte boundary after group reference values
-	// The GRIB2 format packs each metadata section into rounded byte boundaries
 	bitReader.Align()
 
 	// Unpack group widths
-	groupWidths := make([]uint8, t.NumberOfGroups)
+	if err := t.readGroupWidths(bitReader, metadata.widths); err != nil {
+		return nil, err
+	}
+	bitReader.Align()
+
+	// Unpack group lengths
+	if err := t.readGroupLengths(bitReader, metadata.lengths); err != nil {
+		return nil, err
+	}
+	bitReader.Align()
+
+	return metadata, nil
+}
+
+// readGroupWidths reads the width for each group
+func (t *Template53) readGroupWidths(bitReader *internal.BitReader, groupWidths []uint8) error {
 	if t.NumBitsGroupWidth > 0 {
 		for i := uint32(0); i < t.NumberOfGroups; i++ {
 			val, err := bitReader.ReadBits(int(t.NumBitsGroupWidth))
 			if err != nil {
-				return nil, fmt.Errorf("failed to read group width %d: %w", i, err)
+				return fmt.Errorf("failed to read group width %d: %w", i, err)
 			}
 			groupWidths[i] = uint8(val) + t.ReferenceGroupWidth
 		}
@@ -235,22 +284,17 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float32, error)
 			groupWidths[i] = t.ReferenceGroupWidth
 		}
 	}
-	// Align to byte boundary after group widths
-	bitReader.Align()
+	return nil
+}
 
-	// Unpack group lengths
-	// According to GRIB2 spec and reference implementations:
-	// - Group length metadata for first (ngroups-1) groups is encoded in the bitstream
-	// - The last group's length is given directly by TrueLengthLastGroup template field
-	// - The bitstream ALLOCATES space for all ngroups worth of lengths, but only
-	//   ngroups-1 are populated (the last one's space is unused)
-	groupLengths := make([]uint32, t.NumberOfGroups)
+// readGroupLengths reads the length for each group
+func (t *Template53) readGroupLengths(bitReader *internal.BitReader, groupLengths []uint32) error {
 	if t.NumBitsGroupLength > 0 {
-		// Strategy: Read first (ngroups-1) lengths, then use TrueLengthLastGroup for last
+		// Read first (ngroups-1) lengths, then use TrueLengthLastGroup for last
 		for i := uint32(0); i < t.NumberOfGroups-1; i++ {
 			val, err := bitReader.ReadBits(int(t.NumBitsGroupLength))
 			if err != nil {
-				return nil, fmt.Errorf("failed to read group length %d: %w", i, err)
+				return fmt.Errorf("failed to read group length %d: %w", i, err)
 			}
 			groupLengths[i] = t.ReferenceGroupLength + uint32(val)*uint32(t.GroupLengthIncrement)
 		}
@@ -259,10 +303,8 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float32, error)
 			groupLengths[t.NumberOfGroups-1] = t.TrueLengthLastGroup
 		}
 		// Skip the unused space allocated for the last group's length
-		// The GRIB2 format allocates space for all ngroups lengths, even though
-		// only ngroups-1 are actually encoded (last comes from TrueLengthLastGroup)
 		if err := bitReader.Skip(int(t.NumBitsGroupLength)); err != nil {
-			return nil, fmt.Errorf("failed to skip unused last group length space: %w", err)
+			return fmt.Errorf("failed to skip unused last group length space: %w", err)
 		}
 	} else {
 		// All groups use reference length, except last group
@@ -273,18 +315,18 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float32, error)
 			groupLengths[t.NumberOfGroups-1] = t.TrueLengthLastGroup
 		}
 	}
-	// Align to byte boundary after group lengths
-	bitReader.Align()
+	return nil
+}
 
-	// Unpack data values for each group
-	// Unpack ALL ndata values (firstVals are not separate, they're part of the packed data)
+// unpackGroupData unpacks data values from all groups
+func (t *Template53) unpackGroupData(bitReader *internal.BitReader, ndata uint32, metadata *groupMetadata) ([]int32, error) {
 	unpackedVals := make([]int32, ndata)
-
 	idx := 0
+
 	for i := uint32(0); i < t.NumberOfGroups; i++ {
-		groupWidth := groupWidths[i]
-		groupLength := groupLengths[i]
-		groupMin := groupMinVals[i]
+		groupWidth := metadata.widths[i]
+		groupLength := metadata.lengths[i]
+		groupMin := metadata.minVals[i]
 
 		for j := uint32(0); j < groupLength; j++ {
 			if idx >= int(ndata) {
@@ -305,24 +347,19 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float32, error)
 		}
 	}
 
-	// Reverse spatial differencing
-	// The firstVals and minVal are used as parameters for the reversal algorithm,
-	// not as separate data points
-	var finalVals []int32
+	return unpackedVals, nil
+}
+
+// applySpatialDifferencing applies the appropriate spatial differencing reversal
+func (t *Template53) applySpatialDifferencing(unpackedVals []int32, firstVals []int32, minVal int32) []int32 {
 	switch t.SpatialDiffOrder {
 	case 1:
-		finalVals = t.reverseSpatialDifferencing1(unpackedVals, firstVals, minVal)
+		return t.reverseSpatialDifferencing1(unpackedVals, firstVals, minVal)
 	case 2:
-		finalVals = t.reverseSpatialDifferencing2(unpackedVals, firstVals, minVal)
+		return t.reverseSpatialDifferencing2(unpackedVals, firstVals, minVal)
 	default:
-		finalVals = unpackedVals
+		return unpackedVals
 	}
-
-	// Apply scaling and convert to float64
-	if bitmap != nil {
-		return t.applyScalingWithBitmap(finalVals, bitmap)
-	}
-	return t.applyScalingWithoutBitmap(finalVals), nil
 }
 
 // reverseSpatialDifferencing1 reverses first-order spatial differencing.

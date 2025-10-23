@@ -39,6 +39,19 @@ func main() {
 		fmt.Fprintf(os.Stderr, "  %s -record 0 -values file.grib2  # Show data values for record 0\n", os.Args[0])
 	}
 
+	filename := parseCommandLineArgs()
+	fields := readGRIBFile(filename)
+
+	if len(fields) == 0 {
+		fmt.Println("No GRIB2 messages found in file")
+		return
+	}
+
+	displayOutput(filename, fields)
+}
+
+// parseCommandLineArgs parses command-line arguments and returns the filename
+func parseCommandLineArgs() string {
 	// Manually parse to allow flags anywhere and find non-flag argument as filename
 	filename := ""
 	args := []string{}
@@ -72,7 +85,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Open and read file
+	return filename
+}
+
+// readGRIBFile opens and reads a GRIB2 file
+func readGRIBFile(filename string) []*grib.GRIB2 {
 	f, err := os.Open(filename)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error opening file: %v\n", err)
@@ -90,12 +107,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	if len(fields) == 0 {
-		fmt.Println("No GRIB2 messages found in file")
-		return
-	}
+	return fields
+}
 
-	// Determine what to display
+// displayOutput determines what to display based on flags
+func displayOutput(filename string, fields []*grib.GRIB2) {
 	if *recordFlag >= 0 {
 		if *recordFlag >= len(fields) {
 			fmt.Fprintf(os.Stderr, "Record %d does not exist (file has %d records, numbered 0-%d)\n",
@@ -103,15 +119,30 @@ func main() {
 			os.Exit(1)
 		}
 		showRecordDetail(fields[*recordFlag], *recordFlag, *valuesFlag)
-	} else if *listFlag {
+		return
+	}
+
+	if *listFlag {
 		showList(fields)
-	} else if *detailFlag {
+		return
+	}
+
+	if *detailFlag {
 		showAllDetails(fields, *valuesFlag)
-	} else if *statsFlag {
+		return
+	}
+
+	if *statsFlag {
 		showStats(fields)
-	} else if *bboxFlag {
+		return
+	}
+
+	if *bboxFlag {
 		showBoundingBoxes(fields)
-	} else if *summaryFlag {
+		return
+	}
+
+	if *summaryFlag {
 		showSummary(filename, fields)
 	}
 }

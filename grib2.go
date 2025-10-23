@@ -136,28 +136,46 @@ func ReadWithOptions(r io.ReadSeeker, opts ...ReadOption) ([]*GRIB2, error) {
 	}
 
 	// Parse messages
-	var messages []*Message
-	var err error
-
-	if config.sequential {
-		if config.skipErrors {
-			messages, err = ParseMessagesFromStreamSequentialSkipErrors(r)
-		} else {
-			messages, err = ParseMessagesFromStreamSequential(r)
-		}
-	} else if config.ctx != nil {
-		messages, err = ParseMessagesFromStreamWithContext(config.ctx, r, config.workers)
-	} else {
-		messages, err = ParseMessagesFromStreamWithWorkers(r, config.workers)
-	}
-
+	messages, err := parseMessages(r, config)
 	if err != nil && !config.skipErrors {
 		return nil, err
 	}
 
 	// Phase 1: Identify unique grids
+	gridToMessages, uniqueGrids := identifyUniqueGrids(messages, config)
+
+	// Phase 2: Compute coordinates for unique grids in parallel
+	coordCache := computeCoordinatesForGrids(uniqueGrids)
+
+	// Phase 3: Convert messages to GRIB2 structs using cached coordinates
+	fields, err := convertMessagesToGRIB2(gridToMessages, coordCache, config)
+	if err != nil && !config.skipErrors {
+		return nil, err
+	}
+
+	return fields, nil
+}
+
+// parseMessages parses GRIB2 messages using the configured strategy
+func parseMessages(r io.ReadSeeker, config readConfig) ([]*Message, error) {
+	if config.sequential {
+		if config.skipErrors {
+			return ParseMessagesFromStreamSequentialSkipErrors(r)
+		}
+		return ParseMessagesFromStreamSequential(r)
+	}
+
+	if config.ctx != nil {
+		return ParseMessagesFromStreamWithContext(config.ctx, r, config.workers)
+	}
+
+	return ParseMessagesFromStreamWithWorkers(r, config.workers)
+}
+
+// identifyUniqueGrids groups messages by grid and identifies unique grids
+func identifyUniqueGrids(messages []*Message, config readConfig) (map[gridKey][]*Message, map[gridKey]*Message) {
 	gridToMessages := make(map[gridKey][]*Message)
-	uniqueGrids := make(map[gridKey]*Message) // Keep one example of each grid
+	uniqueGrids := make(map[gridKey]*Message)
 
 	for _, msg := range messages {
 		// Apply filters first
@@ -176,7 +194,11 @@ func ReadWithOptions(r io.ReadSeeker, opts ...ReadOption) ([]*GRIB2, error) {
 		}
 	}
 
-	// Phase 2: Compute coordinates for unique grids in parallel
+	return gridToMessages, uniqueGrids
+}
+
+// computeCoordinatesForGrids computes coordinates for each unique grid in parallel
+func computeCoordinatesForGrids(uniqueGrids map[gridKey]*Message) map[gridKey]*coordinateCache {
 	coordCache := make(map[gridKey]*coordinateCache)
 	var cacheMutex sync.Mutex
 	var wg sync.WaitGroup
@@ -202,7 +224,11 @@ func ReadWithOptions(r io.ReadSeeker, opts ...ReadOption) ([]*GRIB2, error) {
 	}
 	wg.Wait()
 
-	// Phase 3: Convert messages to GRIB2 structs using cached coordinates (in parallel)
+	return coordCache
+}
+
+// convertMessagesToGRIB2 converts messages to GRIB2 structs using cached coordinates
+func convertMessagesToGRIB2(gridToMessages map[gridKey][]*Message, coordCache map[gridKey]*coordinateCache, config readConfig) ([]*GRIB2, error) {
 	type result struct {
 		field *GRIB2
 		err   error
