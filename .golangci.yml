@@ -16,22 +16,22 @@ linters:
     - unconvert
     - unparam
 
-settings:
-  gocyclo:
-    min-complexity: 15
+  settings:
+    gocyclo:
+      min-complexity: 15
 
-  revive:
+    revive:
+      rules:
+        - name: exported
+          severity: warning
+          disabled: false
+        - name: package-comments
+          severity: warning
+          disabled: false
+
+  exclusions:
     rules:
-      - name: exported
-        severity: warning
-        disabled: false
-      - name: package-comments
-        severity: warning
-        disabled: false
-
-issues:
-  exclude:
-    - path: _test\.go
-      linters:
-        - gocyclo
-        - errcheck
+      - path: _test\.go
+        linters:
+          - gocyclo
+          - errcheck
