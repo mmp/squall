@@ -14,8 +14,15 @@ import (
 	"time"
 )
 
-// Wgrib2Path is the path to the wgrib2 binary.
-var Wgrib2Path = "/Users/mmp/bin/wgrib2"
+// getWgrib2Path returns the path to the wgrib2 binary from PATH.
+// Returns an error if wgrib2 is not found in PATH.
+func getWgrib2Path() (string, error) {
+	path, err := exec.LookPath("wgrib2")
+	if err != nil {
+		return "", fmt.Errorf("wgrib2 not found in PATH: %w (install wgrib2 and ensure it's in your PATH)", err)
+	}
+	return path, nil
+}
 
 // ParseWgrib2 runs wgrib2 on a GRIB2 file and extracts data with full float32 precision.
 //
@@ -24,8 +31,13 @@ var Wgrib2Path = "/Users/mmp/bin/wgrib2"
 //
 // Returns an array of FieldData structures in message order (message 1, message 2, etc.).
 func ParseWgrib2(gribFile string) ([]*FieldData, error) {
+	wgrib2Path, err := getWgrib2Path()
+	if err != nil {
+		return nil, err
+	}
+
 	// First, get the inventory to know how many messages there are
-	invCmd := exec.Command(Wgrib2Path, gribFile)
+	invCmd := exec.Command(wgrib2Path, gribFile)
 	invOutput, err := invCmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("wgrib2 inventory failed: %v\nOutput: %s", err, invOutput)
@@ -70,7 +82,7 @@ func ParseWgrib2(gribFile string) ([]*FieldData, error) {
 		// -order we:sn ensures consistent west-to-east, south-to-north ordering
 		// -no_header removes fortran-style headers
 		// -little_endian ensures proper endianness for Go's binary.Read
-		cmd := exec.Command(Wgrib2Path, gribFile,
+		cmd := exec.Command(wgrib2Path, gribFile,
 			"-d", fmt.Sprintf("%d", i+1),
 			"-order", "we:sn",
 			"-gridout", coordPath,

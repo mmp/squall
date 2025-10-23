@@ -108,11 +108,22 @@ go test -v -run TestIntegrationWithRealFiles/sample.grib2
 
 ### wgrib2
 
-The wgrib2 binary must be available at `/Users/mmp/bin/wgrib2`. To customize:
+The wgrib2 binary must be available in your system PATH. To install:
 
-```go
-testutil.Wgrib2Path = "/path/to/wgrib2"
+**macOS (via Homebrew):**
+```bash
+brew install wgrib2
 ```
+
+**Linux (build from source):**
+```bash
+git clone https://github.com/NOAA-EMC/wgrib2.git
+cd wgrib2
+make
+sudo cp wgrib2/wgrib2 /usr/local/bin/
+```
+
+The integration tests will automatically find wgrib2 in your PATH.
 
 ## Example Output
 

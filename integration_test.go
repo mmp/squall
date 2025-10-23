@@ -89,6 +89,13 @@ func testGRIB2File(t *testing.T, gribFile string) {
 		t.Fatalf("stat failed: %v", err)
 	}
 
+	// Check if this is a Git LFS pointer file (< 1KB indicates pointer, not actual data)
+	if info.Size() < 1024 {
+		t.Skipf("Skipping %s - appears to be a Git LFS pointer file (pull with 'git lfs pull')",
+			filepath.Base(gribFile))
+		return
+	}
+
 	// Size limit: 15 MB by default, or unlimited if flag is set
 	const defaultSizeLimit = 15 * 1024 * 1024 // 15 MB
 	if !*noSizeLimit && info.Size() > defaultSizeLimit {

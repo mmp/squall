@@ -13,7 +13,7 @@ This guide helps you start implementing the squall library following the detaile
 ### 1. Initialize Go Module
 
 ```bash
-cd /Users/mmp/squall
+cd squall
 go mod init github.com/mmp/squall
 ```
 

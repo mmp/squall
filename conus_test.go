@@ -15,6 +15,12 @@ func TestParseHRRRCONUS(t *testing.T) {
 		t.Skip("CONUS HRRR file not found - place in testgribs/ or skip this test")
 	}
 
+	// Check if this is a Git LFS pointer file (< 1KB indicates pointer, not actual data)
+	// Git LFS pointer files are text files that start with "version https://git-lfs.github.com"
+	if len(data) < 1024 {
+		t.Skip("File appears to be a Git LFS pointer - run integration tests with LFS enabled or pull LFS files with 'git lfs pull'")
+	}
+
 	t.Logf("File size: %d bytes (%.1f MB)", len(data), float64(len(data))/1024/1024)
 
 	// Parse all fields - Template 5.3 (complex packing) is now fully supported

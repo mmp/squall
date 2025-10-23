@@ -16,11 +16,7 @@ linters:
     - unconvert
     - unparam
 
-formatters:
-  enable:
-    - gofmt
-
-linters-settings:
+settings:
   gocyclo:
     min-complexity: 15
 
@@ -34,7 +30,7 @@ linters-settings:
         disabled: false
 
 issues:
-  exclude-rules:
+  exclude:
     - path: _test\.go
       linters:
         - gocyclo
