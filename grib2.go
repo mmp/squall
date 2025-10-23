@@ -358,17 +358,17 @@ func (g *GRIB2) MinValue() float32 {
 		return 0
 	}
 
-	min := g.Data[0]
+	minVal := g.Data[0]
 	for _, val := range g.Data {
 		// Skip missing values
 		if val > 9e20 {
 			continue
 		}
-		if val < min {
-			min = val
+		if val < minVal {
+			minVal = val
 		}
 	}
-	return min
+	return minVal
 }
 
 // MaxValue returns the maximum data value in the field.
@@ -377,17 +377,17 @@ func (g *GRIB2) MaxValue() float32 {
 		return 0
 	}
 
-	max := g.Data[0]
+	maxVal := g.Data[0]
 	for _, val := range g.Data {
 		// Skip missing values
 		if val > 9e20 {
 			continue
 		}
-		if val > max {
-			max = val
+		if val > maxVal {
+			maxVal = val
 		}
 	}
-	return max
+	return maxVal
 }
 
 // CountValid returns the number of valid (non-missing) data values.

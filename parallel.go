@@ -69,7 +69,7 @@ func ParseMessagesWithContext(ctx context.Context, data []byte, workers int) ([]
 	var mu sync.Mutex
 
 	// Create worker pool
-	pool := internal.NewWorkerPool(workers, ctx)
+	pool := internal.NewWorkerPool(ctx, workers)
 
 	// Submit parsing tasks
 	for i := range boundaries {
@@ -232,7 +232,7 @@ func ParseMessagesFromStreamWithContext(ctx context.Context, r io.ReadSeeker, wo
 	var mu sync.Mutex
 
 	// Create worker pool
-	pool := internal.NewWorkerPool(workers, ctx)
+	pool := internal.NewWorkerPool(ctx, workers)
 
 	// Submit parsing tasks
 	for i := range boundaries {

@@ -35,14 +35,14 @@ func ParseLatLonGrid(data []byte) (*LatLonGrid, error) {
 
 	// Skip shape of earth (1 byte) and related parameters (15 bytes)
 	// We'll implement proper earth shape handling in a future phase
-	r.Skip(16)
+	_ = r.Skip(16)
 
 	// Read grid dimensions
 	ni, _ := r.Uint32()
 	nj, _ := r.Uint32()
 
 	// Skip basic angle and subdivisions (8 bytes)
-	r.Skip(8)
+	_ = r.Skip(8)
 
 	// Read grid points
 	la1, _ := r.Int32()

@@ -10,10 +10,10 @@ import (
 // FieldData represents a parsed GRIB2 field for comparison.
 type FieldData struct {
 	// Metadata
-	RefTime  time.Time
-	VerTime  time.Time
-	Field    string
-	Level    string
+	RefTime time.Time
+	VerTime time.Time
+	Field   string
+	Level   string
 
 	// Grid data
 	Latitudes  []float32
@@ -26,9 +26,9 @@ type FieldData struct {
 
 // ComparisonResult holds the results of comparing two fields.
 type ComparisonResult struct {
-	MetadataMatch   bool
+	MetadataMatch    bool
 	CoordinatesMatch bool
-	DataMatch       bool
+	DataMatch        bool
 
 	MessageCount    int
 	ExactMatches    int

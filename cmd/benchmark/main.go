@@ -1,3 +1,4 @@
+// Package main provides a benchmarking tool for GRIB2 file parsing performance.
 package main
 
 import (
@@ -63,7 +64,11 @@ func benchmarkMgrib2(filename string, cpuprofile string, memprofile string) erro
 		if err != nil {
 			return fmt.Errorf("could not create CPU profile: %w", err)
 		}
-		defer profileFile.Close()
+		defer func() {
+			if err := profileFile.Close(); err != nil {
+				fmt.Printf("Warning: failed to close profile file: %v\n", err)
+			}
+		}()
 		if err := pprof.StartCPUProfile(profileFile); err != nil {
 			return fmt.Errorf("could not start CPU profile: %w", err)
 		}
@@ -75,7 +80,11 @@ func benchmarkMgrib2(filename string, cpuprofile string, memprofile string) erro
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Printf("Warning: failed to close file: %v\n", err)
+		}
+	}()
 
 	// Read all messages at once
 	fields, err := grib.Read(f)
@@ -113,7 +122,11 @@ func benchmarkMgrib2(filename string, cpuprofile string, memprofile string) erro
 		if err != nil {
 			return fmt.Errorf("could not create memory profile: %w", err)
 		}
-		defer f.Close()
+		defer func() {
+			if err := f.Close(); err != nil {
+				fmt.Printf("Warning: failed to close memory profile file: %v\n", err)
+			}
+		}()
 		runtime.GC() // get up-to-date statistics
 		if err := pprof.WriteHeapProfile(f); err != nil {
 			return fmt.Errorf("could not write memory profile: %w", err)

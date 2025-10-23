@@ -153,7 +153,8 @@ func ParseMessage(data []byte) (*Message, error) {
 		return nil, err
 	}
 	msg.Section7 = sec7.(*section.Section7)
-	offset += int(sec7.(*section.Section7).Length)
+	// Note: offset is not used after this point, but we keep it for clarity
+	_ = offset
 
 	// The remaining 4 bytes should be the end marker "7777"
 	// (already validated by ValidateMessageStructure)
@@ -162,7 +163,7 @@ func ParseMessage(data []byte) (*Message, error) {
 }
 
 // extractSectionData reads a section's length and extracts its data.
-func extractSectionData(data []byte, offset int, expectedSection uint8) []byte {
+func extractSectionData(data []byte, offset int, _ uint8) []byte {
 	if offset+5 > len(data) {
 		return nil
 	}

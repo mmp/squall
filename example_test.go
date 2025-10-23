@@ -43,7 +43,9 @@ func Example_streaming() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	// Parse messages directly from the file stream
 	// Individual messages are read into memory as needed, but not the entire file

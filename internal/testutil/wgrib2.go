@@ -50,16 +50,20 @@ func ParseWgrib2(gribFile string) ([]*FieldData, error) {
 			return nil, fmt.Errorf("failed to create temp coord file: %v", err)
 		}
 		coordPath := coordFile.Name()
-		coordFile.Close()
-		defer os.Remove(coordPath)
+		_ = coordFile.Close()
+		defer func() {
+			_ = os.Remove(coordPath)
+		}()
 
 		valueFile, err := os.CreateTemp("", fmt.Sprintf("wgrib2_values_%d_*.bin", i+1))
 		if err != nil {
 			return nil, fmt.Errorf("failed to create temp value file: %v", err)
 		}
 		valuePath := valueFile.Name()
-		valueFile.Close()
-		defer os.Remove(valuePath)
+		_ = valueFile.Close()
+		defer func() {
+			_ = os.Remove(valuePath)
+		}()
 
 		// Run wgrib2 to extract coordinates and values for this specific message
 		// -d specifies which message to process (1-indexed)
@@ -276,7 +280,9 @@ func readGridout(path string) ([]coord, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	var coords []coord
 	scanner := bufio.NewScanner(file)
@@ -327,7 +333,9 @@ func readIEEEBinary(path string) ([]float32, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	// Get file size to pre-allocate slice
 	stat, err := file.Stat()

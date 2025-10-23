@@ -17,7 +17,9 @@ func ParseMgrib2(gribFile string) ([]*FieldData, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %v", err)
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	// Parse with squall (use sequential + skip errors for robustness)
 	fields, err := grib.ReadWithOptions(file,

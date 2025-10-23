@@ -25,7 +25,7 @@ type WorkerPool struct {
 // NewWorkerPool creates a new worker pool with the specified number of workers.
 //
 // If workers <= 0, it defaults to 1.
-func NewWorkerPool(workers int, ctx context.Context) *WorkerPool {
+func NewWorkerPool(ctx context.Context, workers int) *WorkerPool {
 	if workers <= 0 {
 		workers = 1
 	}

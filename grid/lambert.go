@@ -39,7 +39,7 @@ func ParseLambertConformalGrid(data []byte) (*LambertConformalGrid, error) {
 
 	// Skip shape of earth (1 byte) and related parameters (15 bytes)
 	// Following same pattern as LatLonGrid
-	r.Skip(16)
+	_ = r.Skip(16)
 
 	// Read grid dimensions
 	nx, _ := r.Uint32()

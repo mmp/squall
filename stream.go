@@ -33,95 +33,103 @@ func FindMessagesInStream(r io.ReadSeeker) ([]MessageBoundary, error) {
 	var boundaries []MessageBoundary
 	index := 0
 	offset := int64(0)
+	totalBytesRead := int64(0)
 
-	// Buffer for reading section 0
+	// Buffer for scanning for GRIB magic numbers
+	// Read in chunks to efficiently scan for "GRIB" markers
+	const bufSize = 4096
+	buf := make([]byte, bufSize)
 	sec0Buf := make([]byte, 16)
 
 	for {
-		// Try to read Section 0 (16 bytes)
-		n, err := io.ReadFull(r, sec0Buf)
+		// Read next chunk
+		n, err := r.Read(buf)
 		if err == io.EOF {
-			// Normal end of file
-			break
-		}
-		if err == io.ErrUnexpectedEOF {
-			// Incomplete data at end
-			if n > 0 {
-				return boundaries, &ParseError{
-					Section: -1,
-					Offset:  int(offset),
-					Message: fmt.Sprintf("incomplete data at end of stream: %d bytes remaining, need at least 16", n),
-				}
+			if n == 0 {
+				break
 			}
-			break
-		}
-		if err != nil {
+			// Process remaining bytes
+		} else if err != nil {
 			return nil, fmt.Errorf("failed to read at offset %d: %w", offset, err)
 		}
+		totalBytesRead += int64(n)
 
-		// Check for GRIB magic number
-		if sec0Buf[0] != 'G' || sec0Buf[1] != 'R' || sec0Buf[2] != 'I' || sec0Buf[3] != 'B' {
-			return nil, &InvalidFormatError{
-				Offset:  int(offset),
-				Message: fmt.Sprintf("expected GRIB magic number, found %q", string(sec0Buf[0:4])),
+		// Search for "GRIB" in this chunk
+		for i := 0; i < n-3; i++ {
+			if buf[i] == 'G' && buf[i+1] == 'R' && buf[i+2] == 'I' && buf[i+3] == 'B' {
+				// Found potential GRIB message
+				msgOffset := offset + int64(i)
+
+				// Seek to this position to read full Section 0
+				if _, err := r.Seek(msgOffset, io.SeekStart); err != nil {
+					return nil, fmt.Errorf("failed to seek to message at offset %d: %w", msgOffset, err)
+				}
+
+				// Read Section 0
+				if _, err := io.ReadFull(r, sec0Buf); err != nil {
+					// If we can't read full section 0, skip this match
+					continue
+				}
+
+				// Parse Section 0 to get message length
+				sec0, err := section.ParseSection0(sec0Buf)
+				if err != nil {
+					// Invalid Section 0, skip this match
+					continue
+				}
+
+				// Validate message by checking end marker
+				messageEnd := msgOffset + int64(sec0.MessageLength)
+
+				// Seek to 4 bytes before end to read "7777" marker
+				if _, err := r.Seek(messageEnd-4, io.SeekStart); err != nil {
+					// Can't seek to end, probably truncated file
+					continue
+				}
+
+				// Read end marker
+				endMarker := make([]byte, 4)
+				if _, err := io.ReadFull(r, endMarker); err != nil {
+					// Can't read end marker
+					continue
+				}
+
+				if string(endMarker) != "7777" {
+					// Invalid end marker, skip this match
+					continue
+				}
+
+				// Valid GRIB message found!
+				boundaries = append(boundaries, MessageBoundary{
+					Start:  int(msgOffset),
+					Length: sec0.MessageLength,
+					Index:  index,
+				})
+				index++
+
+				// Continue scanning after this message
+				// Seek to end of message
+				if _, err := r.Seek(messageEnd, io.SeekStart); err != nil {
+					return boundaries, nil // Return what we have
+				}
+				offset = messageEnd
+				// Exit inner loop to read next chunk from new offset
+				goto nextChunk
 			}
 		}
 
-		// Parse Section 0 to get message length
-		sec0, err := section.ParseSection0(sec0Buf)
-		if err != nil {
-			return nil, &ParseError{
-				Section:    0,
-				Offset:     int(offset),
-				Message:    "failed to parse Section 0",
-				Underlying: err,
-			}
+		// Move offset forward
+		offset += int64(n)
+	nextChunk:
+	}
+
+	// If no GRIB messages were found and we read data, return an error
+	// Empty streams (0 bytes) are valid and return 0 messages
+	if len(boundaries) == 0 && totalBytesRead > 0 {
+		return nil, &InvalidFormatError{
+			Offset:  0,
+			Message: "no valid GRIB2 messages found in stream",
 		}
-
-		// Seek to end of message to validate it exists and check end marker
-		messageEnd := offset + int64(sec0.MessageLength)
-
-		// Seek to 4 bytes before end to read "7777" marker
-		if _, err := r.Seek(messageEnd-4, io.SeekStart); err != nil {
-			return nil, &ParseError{
-				Section: 0,
-				Offset:  int(offset),
-				Message: fmt.Sprintf("message length %d exceeds stream size", sec0.MessageLength),
-			}
-		}
-
-		// Read end marker
-		endMarker := make([]byte, 4)
-		if _, err := io.ReadFull(r, endMarker); err != nil {
-			return nil, &ParseError{
-				Section: 0,
-				Offset:  int(offset),
-				Message: fmt.Sprintf("cannot read end marker for message at offset %d", offset),
-			}
-		}
-
-		if string(endMarker) != "7777" {
-			return nil, &ParseError{
-				Section: -1,
-				Offset:  int(messageEnd - 4),
-				Message: fmt.Sprintf("expected end marker \"7777\", found %q", string(endMarker)),
-			}
-		}
-
-		// Record this message boundary
-		boundaries = append(boundaries, MessageBoundary{
-			Start:  int(offset),
-			Length: sec0.MessageLength,
-			Index:  index,
-		})
-
-		// Move to next message
-		offset = messageEnd
-		if _, err := r.Seek(offset, io.SeekStart); err != nil {
-			// If we can't seek to the next message, we're at EOF
-			break
-		}
-		index++
 	}
 
 	// Restore original position

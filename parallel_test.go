@@ -162,7 +162,7 @@ func TestParseMessagesWithContext(t *testing.T) {
 		}
 	})
 
-	t.Run("Context timeout", func(t *testing.T) {
+	t.Run("Context timeout", func(_ *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
 		defer cancel()
 

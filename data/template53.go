@@ -309,11 +309,12 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float32, error)
 	// The firstVals and minVal are used as parameters for the reversal algorithm,
 	// not as separate data points
 	var finalVals []int32
-	if t.SpatialDiffOrder == 1 {
+	switch t.SpatialDiffOrder {
+	case 1:
 		finalVals = t.reverseSpatialDifferencing1(unpackedVals, firstVals, minVal)
-	} else if t.SpatialDiffOrder == 2 {
+	case 2:
 		finalVals = t.reverseSpatialDifferencing2(unpackedVals, firstVals, minVal)
-	} else {
+	default:
 		finalVals = unpackedVals
 	}
 

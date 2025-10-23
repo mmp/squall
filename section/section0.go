@@ -52,15 +52,13 @@ func ParseSection0(data []byte) (*Section0, error) {
 	r := internal.NewReader(data)
 
 	// Skip "GRIB" magic (already validated)
-	r.Skip(4)
+	_ = r.Skip(4)
 
 	// Read and validate reserved bytes
 	reserved, _ := r.Uint16()
-	if reserved != 0 {
-		// WMO spec says this should be 0, but we'll just warn
-		// Some implementations might use this for other purposes
-		// Don't fail, but could log if we had logging
-	}
+	// WMO spec says reserved should be 0, but we allow non-zero values
+	// Some implementations might use this for other purposes
+	_ = reserved
 
 	// Read discipline
 	discipline, _ := r.Uint8()

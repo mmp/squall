@@ -116,7 +116,7 @@ func TestReadWithOptionsFilter(t *testing.T) {
 
 	// Filter to only include even-indexed messages (as a test)
 	count := 0
-	filter := func(msg *Message) bool {
+	filter := func(_ *Message) bool {
 		count++
 		return count%2 == 0
 	}
@@ -204,14 +204,14 @@ func TestGRIB2MinMaxValue(t *testing.T) {
 	field := fields[0]
 
 	// Data values are 250.0, 251.0, ..., 258.0
-	min := field.MinValue()
-	if min != 250.0 {
-		t.Errorf("MinValue: got %.1f, want 250.0", min)
+	minVal := field.MinValue()
+	if minVal != 250.0 {
+		t.Errorf("MinValue: got %.1f, want 250.0", minVal)
 	}
 
-	max := field.MaxValue()
-	if max != 258.0 {
-		t.Errorf("MaxValue: got %.1f, want 258.0", max)
+	maxVal := field.MaxValue()
+	if maxVal != 258.0 {
+		t.Errorf("MaxValue: got %.1f, want 258.0", maxVal)
 	}
 }
 

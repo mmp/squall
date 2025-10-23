@@ -330,12 +330,12 @@ func TestReaderRemaining(t *testing.T) {
 		t.Errorf("initial: got %d, want 5", r.Remaining())
 	}
 
-	r.Uint8()
+	_, _ = r.Uint8()
 	if r.Remaining() != 4 {
 		t.Errorf("after 1 byte: got %d, want 4", r.Remaining())
 	}
 
-	r.Uint16()
+	_, _ = r.Uint16()
 	if r.Remaining() != 2 {
 		t.Errorf("after 3 bytes: got %d, want 2", r.Remaining())
 	}
@@ -411,7 +411,7 @@ func TestBitReaderAlign(t *testing.T) {
 	br := NewBitReader(data)
 
 	// Read 3 bits
-	br.ReadBits(3)
+	_, _ = br.ReadBits(3)
 	if br.Offset() != 3 {
 		t.Errorf("offset before align: got %d, want 3", br.Offset())
 	}

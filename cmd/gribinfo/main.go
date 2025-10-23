@@ -1,3 +1,4 @@
+// Package main provides a command-line tool for examining GRIB2 files.
 package main
 
 import (
@@ -61,7 +62,10 @@ func main() {
 	}
 
 	// Parse the collected flags
-	flag.CommandLine.Parse(args)
+	if err := flag.CommandLine.Parse(args); err != nil {
+		fmt.Fprintf(os.Stderr, "Error parsing flags: %v\n", err)
+		os.Exit(1)
+	}
 
 	if filename == "" {
 		flag.Usage()
@@ -74,7 +78,11 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error opening file: %v\n", err)
 		os.Exit(1)
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to close file: %v\n", err)
+		}
+	}()
 
 	fields, err := grib.Read(f)
 	if err != nil {
@@ -242,16 +250,16 @@ func showRecordDetail(f *grib.GRIB2, recordNum int, showValues bool) {
 	fmt.Printf("\nData:\n")
 	fmt.Printf("  Total points:     %d\n", f.NumPoints)
 
-	min, max := getMinMax(f.Data)
+	minVal, maxVal := getMinMax(f.Data)
 	validCount := countValid(f.Data)
 
 	fmt.Printf("  Valid points:     %d\n", validCount)
 	fmt.Printf("  Missing points:   %d\n", f.NumPoints-validCount)
 
 	if validCount > 0 {
-		fmt.Printf("  Min value:        %.6f\n", min)
-		fmt.Printf("  Max value:        %.6f\n", max)
-		fmt.Printf("  Range:            %.6f\n", max-min)
+		fmt.Printf("  Min value:        %.6f\n", minVal)
+		fmt.Printf("  Max value:        %.6f\n", maxVal)
+		fmt.Printf("  Range:            %.6f\n", maxVal-minVal)
 	}
 
 	// Show values if requested
@@ -280,15 +288,15 @@ func showStats(fields []*grib.GRIB2) {
 			levelStr = levelStr[:12] + "..."
 		}
 
-		min, max := getMinMax(f.Data)
+		minVal, maxVal := getMinMax(f.Data)
 		validCount := countValid(f.Data)
 
 		fmt.Printf("%-5d %-40s %-15s %12.4f %12.4f %6d/%-6d\n",
 			i,
 			paramName,
 			levelStr,
-			min,
-			max,
+			minVal,
+			maxVal,
 			validCount,
 			f.NumPoints)
 	}
@@ -402,24 +410,24 @@ func printDataValues(data []float32, ni int) {
 	fmt.Printf("\n  Total: %d rows x %d columns = %d values\n", nj, ni, len(data))
 }
 
-func getMinMax(data []float32) (min, max float32) {
-	min = float32(math.MaxFloat32)
-	max = float32(-math.MaxFloat32)
+func getMinMax(data []float32) (minVal, maxVal float32) {
+	minVal = float32(math.MaxFloat32)
+	maxVal = float32(-math.MaxFloat32)
 
 	for _, v := range data {
 		if !isMissing(v) {
-			if v < min {
-				min = v
+			if v < minVal {
+				minVal = v
 			}
-			if v > max {
-				max = v
+			if v > maxVal {
+				maxVal = v
 			}
 		}
 	}
 
-	if min == float32(math.MaxFloat32) {
-		min = 0
-		max = 0
+	if minVal == float32(math.MaxFloat32) {
+		minVal = 0
+		maxVal = 0
 	}
 
 	return
