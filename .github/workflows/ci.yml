@@ -133,8 +133,8 @@ jobs:
         make -j$(nproc)
         # Install to cache directory
         make install
-        # Verify the build
-        $HOME/wgrib2/bin/wgrib2 -version
+        # Verify the build (wgrib2 -version returns non-zero exit code)
+        $HOME/wgrib2/bin/wgrib2 -version || true
 
     - name: Add wgrib2 to PATH
       run: echo "$HOME/wgrib2/bin" >> $GITHUB_PATH
