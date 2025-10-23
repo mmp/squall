@@ -121,22 +121,23 @@ jobs:
       if: steps.cache-wgrib2.outputs.cache-hit != 'true'
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc gfortran make
-        # Clone and build in HOME directory
+        sudo apt-get install -y cmake gcc gfortran make
+        # Clone wgrib2
         git clone https://github.com/NOAA-EMC/wgrib2.git $HOME/wgrib2-src
-        cd $HOME/wgrib2-src/grib2
-        # Minimal build without optional features (netcdf, png, jasper, etc)
-        export CC=gcc
-        export FC=gfortran
-        make
-        # Copy binary to expected location
-        mkdir -p $HOME/wgrib2/wgrib2
-        cp ../wgrib2/wgrib2 $HOME/wgrib2/wgrib2/
+        cd $HOME/wgrib2-src
+        # Create build directory
+        mkdir build && cd build
+        # Configure with CMake (minimal build without optional deps)
+        cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/wgrib2
+        # Build
+        make -j$(nproc)
+        # Install to cache directory
+        make install
         # Verify the build
-        $HOME/wgrib2/wgrib2/wgrib2 -version
+        $HOME/wgrib2/bin/wgrib2 -version
 
     - name: Add wgrib2 to PATH
-      run: echo "$HOME/wgrib2/wgrib2" >> $GITHUB_PATH
+      run: echo "$HOME/wgrib2/bin" >> $GITHUB_PATH
 
     - name: Download test GRIB2 file from NOAA
       run: |
