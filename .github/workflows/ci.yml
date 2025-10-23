@@ -117,22 +117,32 @@ jobs:
         path: ~/wgrib2
         key: wgrib2-${{ runner.os }}-${{ steps.wgrib2-version.outputs.commit }}
 
-    - name: Build wgrib2 from source
+    - name: Build wgrib2 from source (minimal build)
       if: steps.cache-wgrib2.outputs.cache-hit != 'true'
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc gfortran make libnetcdf-dev libpng-dev libaec-dev
+        sudo apt-get install -y gcc gfortran make
         cd ~
         git clone https://github.com/NOAA-EMC/wgrib2.git
-        cd wgrib2
+        cd wgrib2/grib2
+        # Minimal build without optional features (netcdf, png, jasper, etc)
         export CC=gcc
         export FC=gfortran
         make
         # Verify the build
-        ./wgrib2/wgrib2 -version
+        ../wgrib2/wgrib2 -version
 
     - name: Add wgrib2 to PATH
       run: echo "$HOME/wgrib2/wgrib2" >> $GITHUB_PATH
+
+    - name: Download test GRIB2 file from NOAA
+      run: |
+        mkdir -p testgribs
+        # Download a small HRRR file from NOAA's GCS bucket (via public HTTP)
+        # Using a recent file - adjust date as needed
+        curl -f -o testgribs/hrrr-test.grib2 \
+          "https://storage.googleapis.com/high-resolution-rapid-refresh/hrrr.20240101/conus/hrrr.t00z.wrfsubhf00.grib2" \
+          || echo "Warning: Could not download test file from NOAA"
 
     - name: Run integration tests
       run: go test -v -run TestIntegration ./...
