@@ -35,9 +35,7 @@ type GRIB2 struct {
 	DataType         string    // Forecast, Analysis, etc.
 
 	// Parameter information
-	ParameterCategory string // Temperature, Moisture, etc.
-	ParameterNumber   string // Specific parameter within category
-	ParameterName     string // Human-readable parameter name
+	Parameter ParameterID // WMO standard parameter identifier (D.C.P)
 
 	// Level/surface information
 	Level      string  // Type of level (isobaric, surface, etc.)
@@ -74,7 +72,7 @@ type GRIB2 struct {
 //
 //	for _, field := range fields {
 //	    fmt.Printf("%s at %s: %d points\n",
-//	        field.ParameterName, field.Level, field.NumPoints)
+//	        field.Parameter, field.Level, field.NumPoints)
 //	}
 func Read(r io.ReadSeeker) ([]*GRIB2, error) {
 	return ReadWithOptions(r)
@@ -321,14 +319,16 @@ func populateMetadata(g2 *GRIB2, msg *Message) *GRIB2 {
 	}
 
 	if msg.Section4 != nil && msg.Section4.Product != nil {
-		discipline := int(msg.Section0.Discipline)
+		discipline := msg.Section0.Discipline
 		category := msg.Section4.Product.GetParameterCategory()
 		number := msg.Section4.Product.GetParameterNumber()
 
-		// Use table lookups for human-readable names
-		g2.ParameterCategory = tables.GetParameterCategoryName(discipline, int(category))
-		g2.ParameterNumber = fmt.Sprintf("%d", number)
-		g2.ParameterName = tables.GetParameterName(discipline, int(category), int(number))
+		// Store WMO parameter identifier
+		g2.Parameter = ParameterID{
+			Discipline: discipline,
+			Category:   category,
+			Number:     number,
+		}
 
 		// Extract level information from product template
 		if template, ok := msg.Section4.Product.(*product.Template40); ok {
@@ -349,7 +349,7 @@ func populateMetadata(g2 *GRIB2, msg *Message) *GRIB2 {
 // String returns a human-readable summary of the field.
 func (g *GRIB2) String() string {
 	return fmt.Sprintf("GRIB2: %s from %s, %d points, ref time %s",
-		g.ParameterName, g.Center, g.NumPoints, g.ReferenceTime.Format(time.RFC3339))
+		g.Parameter, g.Center, g.NumPoints, g.ReferenceTime.Format(time.RFC3339))
 }
 
 // MinValue returns the minimum data value in the field.

@@ -136,7 +136,7 @@ func showSummary(filename string, fields []*grib.GRIB2) {
 	for _, f := range fields {
 		disciplines[f.Discipline] = true
 		centers[f.Center] = true
-		paramTypes[fmt.Sprintf("%s / %s", f.ParameterCategory, f.ParameterName)] = true
+		paramTypes[fmt.Sprintf("%s / %s", f.Parameter.CategoryName(), f.Parameter.String())] = true
 		levels[f.Level] = true
 		gridTypes[f.GridType] = true
 		refTimes[f.ReferenceTime.Format("2006-01-02 15:04 MST")] = true
@@ -150,7 +150,7 @@ func showSummary(filename string, fields []*grib.GRIB2) {
 	for _, p := range keys(paramTypes) {
 		count := 0
 		for _, f := range fields {
-			if fmt.Sprintf("%s / %s", f.ParameterCategory, f.ParameterName) == p {
+			if fmt.Sprintf("%s / %s", f.Parameter.CategoryName(), f.Parameter.String()) == p {
 				count++
 			}
 		}
@@ -182,7 +182,7 @@ func showList(fields []*grib.GRIB2) {
 	fmt.Println(strings.Repeat("-", 120))
 
 	for i, f := range fields {
-		paramName := f.ParameterName
+		paramName := f.Parameter.String()
 		if len(paramName) > 40 {
 			paramName = paramName[:37] + "..."
 		}
@@ -231,9 +231,9 @@ func showRecordDetail(f *grib.GRIB2, recordNum int, showValues bool) {
 
 	// Parameter information
 	fmt.Printf("\nParameter:\n")
-	fmt.Printf("  Category:         %s\n", f.ParameterCategory)
-	fmt.Printf("  Number:           %s\n", f.ParameterNumber)
-	fmt.Printf("  Name:             %s\n", f.ParameterName)
+	fmt.Printf("  Category:         %s\n", f.Parameter.CategoryName())
+	fmt.Printf("  Number:           %s\n", fmt.Sprint(f.Parameter.Number))
+	fmt.Printf("  Name:             %s\n", f.Parameter.String())
 
 	// Level information
 	fmt.Printf("\nLevel:\n")
@@ -275,7 +275,7 @@ func showStats(fields []*grib.GRIB2) {
 	fmt.Println(strings.Repeat("-", 100))
 
 	for i, f := range fields {
-		paramName := f.ParameterName
+		paramName := f.Parameter.String()
 		if len(paramName) > 40 {
 			paramName = paramName[:37] + "..."
 		}

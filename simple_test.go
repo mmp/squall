@@ -29,7 +29,7 @@ func TestParseHRRRFile(t *testing.T) {
 
 	if len(fields) > 0 {
 		f := fields[0]
-		t.Logf("First field: %s at %s", f.ParameterName, f.Level)
+		t.Logf("First field: %s at %s", f.Parameter.String(), f.Level)
 		t.Logf("  Center: %s", f.Center)
 		t.Logf("  Grid type: %s", f.GridType)
 		t.Logf("  Grid points: %d", f.NumPoints)

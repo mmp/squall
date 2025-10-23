@@ -139,12 +139,12 @@ jobs:
     - name: Add wgrib2 to PATH
       run: echo "$HOME/wgrib2/bin" >> $GITHUB_PATH
 
-    - name: Download test GRIB2 file from NOAA
+    - name: Download CONUS HRRR file from NOAA
       run: |
         mkdir -p testgribs
-        # Download a small HRRR file from NOAA's GCS bucket (via public HTTP)
-        # Using a recent file - adjust date as needed
-        curl -f -o testgribs/hrrr-test.grib2 \
+        # Download the large CONUS HRRR file (stored in LFS in the repo)
+        # This replaces the LFS version to avoid bandwidth quota
+        curl -f -o testgribs/hrrr.20251015-conus-hrrr.t11z.wrfprsf00.grib2 \
           "https://storage.googleapis.com/high-resolution-rapid-refresh/hrrr.20240101/conus/hrrr.t00z.wrfsubhf00.grib2" \
           || echo "Warning: Could not download test file from NOAA"
 

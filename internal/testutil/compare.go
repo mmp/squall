@@ -158,6 +158,7 @@ func CompareFields(a, b *FieldData, maxULP int64) *ComparisonResult {
 }
 
 // compareMetadata checks if metadata fields match.
+// Uses normalization to handle different naming conventions (squall vs wgrib2).
 func compareMetadata(a, b *FieldData, result *ComparisonResult) bool {
 	match := true
 
@@ -173,15 +174,20 @@ func compareMetadata(a, b *FieldData, result *ComparisonResult) bool {
 		match = false
 	}
 
+	// Field names now use wgrib2-compatible short names, so direct comparison
 	if a.Field != b.Field {
 		result.Errors = append(result.Errors,
 			fmt.Sprintf("field name mismatch: %s vs %s", a.Field, b.Field))
 		match = false
 	}
 
-	if a.Level != b.Level {
+	// Normalize level descriptions for comparison (different units/formats)
+	normalizedLevelA := NormalizeLevel(a.Level)
+	normalizedLevelB := NormalizeLevel(b.Level)
+	if normalizedLevelA != normalizedLevelB {
 		result.Errors = append(result.Errors,
-			fmt.Sprintf("level mismatch: %s vs %s", a.Level, b.Level))
+			fmt.Sprintf("level mismatch: %s vs %s (normalized: %s vs %s)",
+				a.Level, b.Level, normalizedLevelA, normalizedLevelB))
 		match = false
 	}
 

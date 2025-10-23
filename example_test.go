@@ -27,7 +27,7 @@ func Example_basic() {
 
 	// Process each field
 	for _, field := range fields {
-		fmt.Printf("Parameter: %s\n", field.ParameterName)
+		fmt.Printf("Parameter: %s\n", field.Parameter.String())
 		fmt.Printf("Center: %s\n", field.Center)
 		fmt.Printf("Time: %s\n", field.ReferenceTime)
 		fmt.Printf("Grid points: %d\n", field.NumPoints)
@@ -85,7 +85,7 @@ func Example_filtering() {
 	}
 
 	for _, field := range fields {
-		fmt.Printf("Temperature field: %s\n", field.ParameterName)
+		fmt.Printf("Temperature field: %s\n", field.Parameter.String())
 	}
 }
 

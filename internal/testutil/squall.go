@@ -37,10 +37,17 @@ func ParseMgrib2(gribFile string) ([]*FieldData, error) {
 		// For now, use reference time for both
 		verTime := field.ReferenceTime
 
+		// Use short name for comparison with wgrib2 (if available)
+		fieldName := field.Parameter.ShortName()
+		if fieldName == "" {
+			// Fall back to full name if no short name exists
+			fieldName = field.Parameter.String()
+		}
+
 		fd := &FieldData{
 			RefTime:    field.ReferenceTime,
 			VerTime:    verTime,
-			Field:      field.ParameterName,
+			Field:      fieldName,
 			Level:      field.Level,
 			Latitudes:  field.Latitudes,
 			Longitudes: field.Longitudes,
