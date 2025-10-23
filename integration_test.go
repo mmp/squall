@@ -156,8 +156,8 @@ func printComparisonStats(t *testing.T, refName string, comparisons []*testutil.
 		}
 		sumMeanULP += comp.MeanULPDiff
 
-		// A comparison passes if coordinates and data match (ignore metadata since field names differ)
-		if !comp.CoordinatesMatch || !comp.DataMatch {
+		// A comparison passes if metadata, coordinates, and data all match
+		if !comp.MetadataMatch || !comp.CoordinatesMatch || !comp.DataMatch {
 			failedMessages++
 		}
 	}

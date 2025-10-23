@@ -84,13 +84,13 @@ func compareArrays(
 		mgribField := mgribFields[i]
 		refField := refFields[i]
 
-		// Compare fields (allow metadata mismatches due to naming differences)
+		// Compare fields
 		comparison := CompareFields(mgribField, refField, maxULP)
 		comparison.Source = fmt.Sprintf("message %d: squall vs %s", i+1, refField.Source)
 		comparison.MessageCount = 1
 
-		// Only fail on data mismatches, not metadata (field names differ between implementations)
-		dataFailed := !comparison.CoordinatesMatch || !comparison.DataMatch
+		// Fail on any mismatch: metadata, coordinates, or data
+		dataFailed := !comparison.MetadataMatch || !comparison.CoordinatesMatch || !comparison.DataMatch
 
 		result.Wgrib2Comparisons = append(result.Wgrib2Comparisons, comparison)
 		if dataFailed {
@@ -138,11 +138,10 @@ func (r *IntegrationTestResult) String() string {
 
 // Passed returns true if all comparisons passed.
 //
-// Only checks data and coordinate matches, not metadata (field names),
-// since different implementations use different naming conventions.
+// Checks metadata, coordinates, and data matches.
 func (r *IntegrationTestResult) Passed() bool {
 	// Check wgrib2 comparison (NOAA reference implementation)
-	// A test passes if all wgrib2 data/coordinates match and there are no critical errors
+	// A test passes if all wgrib2 comparisons match (metadata, coordinates, and data) and there are no critical errors
 	hasNonParseErrors := false
 	for _, err := range r.Errors {
 		// Ignore wgrib2 parse errors for unsupported features

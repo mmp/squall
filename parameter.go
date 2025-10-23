@@ -1,8 +1,6 @@
 package grib
 
 import (
-	"fmt"
-
 	"github.com/mmp/squall/tables"
 )
 
@@ -34,121 +32,133 @@ func (p ParameterID) String() string {
 func (p ParameterID) ShortName() string {
 	// Map common parameters to their standard WMO abbreviations
 	// These match wgrib2's conventions for compatibility
-	key := fmt.Sprintf("%d.%d.%d", p.Discipline, p.Category, p.Number)
-
-	// Meteorological parameters (Discipline 0)
-	switch key {
-	// Temperature (Category 0)
-	case "0.0.0":
-		return "TMP"
-	case "0.0.6":
-		return "DPT"
-	case "0.0.15":
-		return "VPTMP"
-	case "0.0.17":
-		return "SKINT"
-
-	// Moisture (Category 1)
-	case "0.1.0":
-		return "SPFH"
-	case "0.1.1":
-		return "RH"
-	case "0.1.3":
-		return "PWAT"
-	case "0.1.8":
-		return "APCP"
-	case "0.1.11":
-		return "SNOD"
-	case "0.1.13":
-		return "WEASD"
-	case "0.1.22":
-		return "CLWMR"
-	case "0.1.23":
-		return "ICMR"
-	case "0.1.24":
-		return "RWMR"
-	case "0.1.25":
-		return "SNMR"
-
-	// Momentum (Category 2)
-	case "0.2.0":
-		return "WDIR"
-	case "0.2.1":
-		return "WIND"
-	case "0.2.2":
-		return "UGRD"
-	case "0.2.3":
-		return "VGRD"
-	case "0.2.8":
-		return "VVEL"
-	case "0.2.9":
-		return "DZDT"
-	case "0.2.10":
-		return "ABSV"
-	case "0.2.11":
-		return "ABSD"
-	case "0.2.12":
-		return "RELV"
-	case "0.2.13":
-		return "RELD"
-	case "0.2.14":
-		return "PVORT"
-
-	// Mass (Category 3)
-	case "0.3.0":
-		return "PRES"
-	case "0.3.1":
-		return "PRMSL"
-	case "0.3.3":
-		return "ICAHT"
-	case "0.3.4":
-		return "GP"
-	case "0.3.5":
-		return "HGT"
-	case "0.3.6":
-		return "DIST"
-	case "0.3.9":
-		return "HPBL"
-
-	// Cloud (Category 6)
-	case "0.6.1":
-		return "TCDC"
-	case "0.6.3":
-		return "LCDC"
-	case "0.6.4":
-		return "MCDC"
-	case "0.6.5":
-		return "HCDC"
-	case "0.6.6":
-		return "CWAT"
-	case "0.6.22":
-		return "CLMR"
-	case "0.6.23":
-		return "CIMR"
-	case "0.6.24":
-		return "RWMR"
-	case "0.6.25":
-		return "SNMR"
-	case "0.6.32":
-		return "GRLE"
-
-	// Thermodynamic Stability (Category 7)
-	case "0.7.0":
-		return "PLI"
-	case "0.7.6":
-		return "CAPE"
-	case "0.7.7":
-		return "CIN"
-	case "0.7.8":
-		return "HLCY"
-
-	// Radar (Category 10)
-	case "0.10.0":
-		return "REFZR"
-	case "0.10.3":
-		return "REFD"
-	case "0.10.6":
-		return "REFC"
+	switch p.Discipline {
+	case 0: // Meteorological parameters
+		switch p.Category {
+		case 0: // Temperature
+			switch p.Number {
+			case 0:
+				return "TMP"
+			case 6:
+				return "DPT"
+			case 15:
+				return "VPTMP"
+			case 17:
+				return "SKINT"
+			}
+		case 1: // Moisture
+			switch p.Number {
+			case 0:
+				return "SPFH"
+			case 1:
+				return "RH"
+			case 3:
+				return "PWAT"
+			case 8:
+				return "APCP"
+			case 11:
+				return "SNOD"
+			case 13:
+				return "WEASD"
+			case 22:
+				return "CLMR"
+			case 23:
+				return "ICMR"
+			case 24:
+				return "RWMR"
+			case 25:
+				return "SNMR"
+			case 32:
+				return "GRLE"
+			case 82:
+				return "CIMIXR"
+			}
+		case 2: // Momentum
+			switch p.Number {
+			case 0:
+				return "WDIR"
+			case 1:
+				return "WIND"
+			case 2:
+				return "UGRD"
+			case 3:
+				return "VGRD"
+			case 8:
+				return "VVEL"
+			case 9:
+				return "DZDT"
+			case 10:
+				return "ABSV"
+			case 11:
+				return "ABSD"
+			case 12:
+				return "RELV"
+			case 13:
+				return "RELD"
+			case 14:
+				return "PVORT"
+			}
+		case 3: // Mass
+			switch p.Number {
+			case 0:
+				return "PRES"
+			case 1:
+				return "PRMSL"
+			case 3:
+				return "ICAHT"
+			case 4:
+				return "GP"
+			case 5:
+				return "HGT"
+			case 6:
+				return "DIST"
+			case 9:
+				return "HPBL"
+			}
+		case 6: // Cloud
+			switch p.Number {
+			case 1:
+				return "TCDC"
+			case 3:
+				return "LCDC"
+			case 4:
+				return "MCDC"
+			case 5:
+				return "HCDC"
+			case 6:
+				return "CWAT"
+			case 22:
+				return "CLMR"
+			case 23:
+				return "CIMR"
+			case 24:
+				return "RWMR"
+			case 25:
+				return "SNMR"
+			case 32:
+				return "GRLE"
+			}
+		case 7: // Thermodynamic Stability
+			switch p.Number {
+			case 0:
+				return "PLI"
+			case 6:
+				return "CAPE"
+			case 7:
+				return "CIN"
+			case 8:
+				return "HLCY"
+			}
+		case 10: // Radar
+			switch p.Number {
+			case 0:
+				return "REFZR"
+			case 3:
+				return "REFD"
+			case 6:
+				return "REFC"
+			}
+		}
 	}
 
 	// No standard abbreviation

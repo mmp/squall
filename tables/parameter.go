@@ -165,6 +165,8 @@ var parameterMoistureEntries = []*Entry{
 	{27, "Maximum Relative Humidity", "Maximum relative humidity", "%"},
 	{28, "Maximum Absolute Humidity", "Maximum absolute humidity", "kg/m³"},
 	{29, "Total Snowfall", "Total snowfall", "m"},
+	{32, "Graupel", "Graupel (precipitation-sized ice particles)", "kg/kg"},
+	{82, "Cloud Ice Mixing Ratio", "Cloud ice mixing ratio", "kg/kg"},
 }
 
 // Discipline 0, Category 2: Momentum parameters

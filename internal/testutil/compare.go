@@ -4,6 +4,7 @@ package testutil
 import (
 	"fmt"
 	"math"
+	"strings"
 	"time"
 )
 
@@ -246,24 +247,25 @@ func (r *ComparisonResult) String() string {
 		status = "✗"
 	}
 
-	summary := fmt.Sprintf("%s Comparison Result:\n", status)
-	summary += fmt.Sprintf("  Metadata: %v\n", statusSymbol(r.MetadataMatch))
-	summary += fmt.Sprintf("  Coordinates: %v\n", statusSymbol(r.CoordinatesMatch))
+	var b strings.Builder
+	fmt.Fprintf(&b, "%s Comparison Result:\n", status)
+	fmt.Fprintf(&b, "  Metadata: %v\n", statusSymbol(r.MetadataMatch))
+	fmt.Fprintf(&b, "  Coordinates: %v\n", statusSymbol(r.CoordinatesMatch))
 
 	if r.TotalPoints > 0 {
 		exactPct := 100.0 * float64(r.ExactMatches) / float64(r.TotalPoints)
-		summary += fmt.Sprintf("  Data: %v (%d points, %.1f%% exact, max ULP: %d, mean ULP: %.1f)\n",
+		fmt.Fprintf(&b, "  Data: %v (%d points, %.1f%% exact, max ULP: %d, mean ULP: %.1f)\n",
 			statusSymbol(r.DataMatch), r.TotalPoints, exactPct, r.MaxULPDiff, r.MeanULPDiff)
 	}
 
 	if len(r.Errors) > 0 {
-		summary += "\n  Errors:\n"
+		b.WriteString("\n  Errors:\n")
 		for _, err := range r.Errors {
-			summary += fmt.Sprintf("    - %s\n", err)
+			fmt.Fprintf(&b, "    - %s\n", err)
 		}
 	}
 
-	return summary
+	return b.String()
 }
 
 func statusSymbol(ok bool) string {
