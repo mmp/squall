@@ -122,15 +122,18 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y gcc gfortran make
-        cd ~
-        git clone https://github.com/NOAA-EMC/wgrib2.git
-        cd wgrib2/grib2
+        # Clone and build in HOME directory
+        git clone https://github.com/NOAA-EMC/wgrib2.git $HOME/wgrib2-src
+        cd $HOME/wgrib2-src/grib2
         # Minimal build without optional features (netcdf, png, jasper, etc)
         export CC=gcc
         export FC=gfortran
         make
+        # Copy binary to expected location
+        mkdir -p $HOME/wgrib2/wgrib2
+        cp ../wgrib2/wgrib2 $HOME/wgrib2/wgrib2/
         # Verify the build
-        ../wgrib2/wgrib2 -version
+        $HOME/wgrib2/wgrib2/wgrib2 -version
 
     - name: Add wgrib2 to PATH
       run: echo "$HOME/wgrib2/wgrib2" >> $GITHUB_PATH
