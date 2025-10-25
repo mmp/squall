@@ -1,4 +1,4 @@
-package grib_test
+package squall_test
 
 import (
 	"flag"

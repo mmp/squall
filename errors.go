@@ -1,4 +1,4 @@
-// Package grib provides squall, a high-performance Go library for reading GRIB2
+// Package squall provides a high-performance Go library for reading GRIB2
 // (GRIdded Binary 2nd edition) meteorological data files.
 //
 // squall offers:
@@ -17,7 +17,7 @@
 //	}
 //	defer f.Close()
 //
-//	messages, err := grib.Read(f)
+//	messages, err := squall.Read(f)
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
@@ -29,27 +29,27 @@
 //
 // Filtering by parameter:
 //
-//	messages, err := grib.ReadWithOptions(f,
-//	    grib.WithParameterFilter("Temperature", "Relative Humidity"))
+//	messages, err := squall.ReadWithOptions(f,
+//	    squall.WithParameterFilter("Temperature", "Relative Humidity"))
 //
 // Filtering by level:
 //
-//	messages, err := grib.ReadWithOptions(f,
-//	    grib.WithLevelFilter("500 mb", "Surface"))
+//	messages, err := squall.ReadWithOptions(f,
+//	    squall.WithLevelFilter("500 mb", "Surface"))
 //
 // Context support:
 //
 //	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 //	defer cancel()
 //
-//	messages, err := grib.ReadWithOptions(f, grib.WithContext(ctx))
+//	messages, err := squall.ReadWithOptions(f, squall.WithContext(ctx))
 //
 // Performance:
 //
 // squall processes GRIB2 messages in parallel using goroutines, achieving
 // 9.4x speedup on large files with 708 messages. The parallel processing is
 // optimized to use 2×NumCPU workers to balance speed and memory usage.
-package grib
+package squall
 
 import "fmt"
 

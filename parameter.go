@@ -1,4 +1,4 @@
-package grib
+package squall
 
 import (
 	"github.com/mmp/squall/tables"

@@ -1,4 +1,4 @@
-package grib_test
+package squall_test
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	grib "github.com/mmp/squall"
+	"github.com/mmp/squall"
 )
 
 // Example_basic demonstrates basic usage of squall, the GRIB2 library, with streaming.
@@ -18,9 +18,9 @@ func Example_basic() {
 	// defer file.Close()
 
 	// For this example, we'll use a placeholder
-	// In real code, you would use: fields, err := grib.Read(file)
+	// In real code, you would use: fields, err := squall.Read(file)
 	data := []byte{} // placeholder
-	fields, err := grib.Read(bytes.NewReader(data))
+	fields, err := squall.Read(bytes.NewReader(data))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func Example_streaming() {
 
 	// Parse messages directly from the file stream
 	// Individual messages are read into memory as needed, but not the entire file
-	fields, err := grib.Read(file)
+	fields, err := squall.Read(file)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -62,8 +62,8 @@ func Example_parallel() {
 	data := []byte{} // placeholder
 
 	// Use 4 workers for parallel parsing
-	fields, err := grib.ReadWithOptions(bytes.NewReader(data),
-		grib.WithWorkers(4),
+	fields, err := squall.ReadWithOptions(bytes.NewReader(data),
+		squall.WithWorkers(4),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -77,8 +77,8 @@ func Example_filtering() {
 	data := []byte{} // placeholder
 
 	// Only read temperature fields (category 0)
-	fields, err := grib.ReadWithOptions(bytes.NewReader(data),
-		grib.WithParameterCategory(0),
+	fields, err := squall.ReadWithOptions(bytes.NewReader(data),
+		squall.WithParameterCategory(0),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -97,8 +97,8 @@ func Example_context() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	fields, err := grib.ReadWithOptions(bytes.NewReader(data),
-		grib.WithContext(ctx),
+	fields, err := squall.ReadWithOptions(bytes.NewReader(data),
+		squall.WithContext(ctx),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -111,7 +111,7 @@ func Example_context() {
 func Example_coordinates() {
 	data := []byte{} // placeholder
 
-	fields, err := grib.Read(bytes.NewReader(data))
+	fields, err := squall.Read(bytes.NewReader(data))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -147,7 +147,7 @@ func Example_customFilter() {
 	data := []byte{} // placeholder
 
 	// Custom filter: only operational forecasts from NCEP
-	filter := func(msg *grib.Message) bool {
+	filter := func(msg *squall.Message) bool {
 		if msg.Section1 == nil {
 			return false
 		}
@@ -162,8 +162,8 @@ func Example_customFilter() {
 		return true
 	}
 
-	fields, err := grib.ReadWithOptions(bytes.NewReader(data),
-		grib.WithFilter(filter),
+	fields, err := squall.ReadWithOptions(bytes.NewReader(data),
+		squall.WithFilter(filter),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -180,12 +180,12 @@ func Example_multipleOptions() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	fields, err := grib.ReadWithOptions(bytes.NewReader(data),
-		grib.WithWorkers(8),
-		grib.WithContext(ctx),
-		grib.WithParameterCategory(0), // Temperature
-		grib.WithDiscipline(0),        // Meteorological
-		grib.WithCenter(7),            // NCEP
+	fields, err := squall.ReadWithOptions(bytes.NewReader(data),
+		squall.WithWorkers(8),
+		squall.WithContext(ctx),
+		squall.WithParameterCategory(0), // Temperature
+		squall.WithDiscipline(0),        // Meteorological
+		squall.WithCenter(7),            // NCEP
 	)
 	if err != nil {
 		log.Fatal(err)

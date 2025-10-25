@@ -1,4 +1,4 @@
-package grib
+package squall
 
 import (
 	"testing"
