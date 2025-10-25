@@ -358,18 +358,111 @@ func populateMetadata(g2 *GRIB2, msg *Message) *GRIB2 {
 
 		// Extract level information from product template
 		if template, ok := msg.Section4.Product.(*product.Template40); ok {
-			levelType := int(template.FirstSurfaceType)
-			g2.Level = tables.GetLevelName(levelType)
-			g2.LevelValue = float32(template.FirstSurfaceValue)
-
-			// Format level description with value
-			if template.FirstSurfaceValue != 0 {
-				g2.Level = fmt.Sprintf("%s %g", g2.Level, g2.LevelValue)
-			}
+			g2.Level = formatLevel(template)
+			g2.LevelValue = float32(template.FirstSurfaceValue) / float32(scaleFactorToMultiplier(template.FirstSurfaceScaleFactor))
 		}
 	}
 
 	return g2
+}
+
+// scaleFactorToMultiplier converts a GRIB2 scale factor to a multiplier.
+// The scale factor is defined as: actual_value = scaled_value / 10^scale_factor
+func scaleFactorToMultiplier(scaleFactor uint8) float64 {
+	// Handle special case of 0
+	if scaleFactor == 0 {
+		return 1.0
+	}
+
+	// Calculate 10^scaleFactor
+	multiplier := 1.0
+	for i := uint8(0); i < scaleFactor; i++ {
+		multiplier *= 10.0
+	}
+	return multiplier
+}
+
+// formatLevel formats a level description in wgrib2-compatible format.
+func formatLevel(template *product.Template40) string {
+	levelType := int(template.FirstSurfaceType)
+
+	// Apply scale factors to get actual values
+	value1 := float64(template.FirstSurfaceValue) / scaleFactorToMultiplier(template.FirstSurfaceScaleFactor)
+	value2 := float64(template.SecondSurfaceValue) / scaleFactorToMultiplier(template.SecondSurfaceScaleFactor)
+
+	// Special formatting for specific level types to match wgrib2
+	switch levelType {
+	case 1: // Surface
+		return "surface"
+	case 2: // Cloud base
+		return "cloud base"
+	case 3: // Cloud top
+		return "cloud top"
+	case 8: // Nominal top of atmosphere
+		return "top of atmosphere"
+	case 10: // Entire atmosphere (single layer)
+		return "entire atmosphere"
+	case 20: // Isothermal level
+		if template.SecondSurfaceType == 20 && value2 > 0 {
+			// Range between two isothermal levels
+			return fmt.Sprintf("%.0f K level - %.0f K level", value1, value2)
+		}
+		return fmt.Sprintf("%.0f K level", value1)
+	case 100: // Isobaric surface
+		// Convert Pa to mb
+		valueMb := value1 / 100.0
+		valueMb2 := value2 / 100.0
+		if template.SecondSurfaceType == 100 && valueMb2 > 0 {
+			// Range (layer between two isobaric surfaces)
+			return fmt.Sprintf("%.0f-%.0f mb above ground", valueMb, valueMb2)
+		}
+		// Format with appropriate precision (show decimal if needed)
+		if valueMb == float64(int(valueMb)) {
+			return fmt.Sprintf("%.0f mb", valueMb)
+		}
+		return fmt.Sprintf("%.1f mb", valueMb)
+	case 101: // Mean sea level
+		return "mean sea level"
+	case 103: // Height above ground
+		if template.SecondSurfaceType == 103 && value2 > 0 {
+			// Range (layer)
+			return fmt.Sprintf("%.0f-%.0f m above ground", value1, value2)
+		}
+		if value1 == 0 {
+			return "surface"
+		}
+		return fmt.Sprintf("%.0f m above ground", value1)
+	case 104: // Sigma level
+		if template.SecondSurfaceType == 104 && value2 > 0 {
+			// Range (sigma layer)
+			return fmt.Sprintf("%.1f-%.1f sigma layer", value1, value2)
+		}
+		return fmt.Sprintf("%.1f sigma level", value1)
+	case 106: // Depth below land surface
+		if template.SecondSurfaceType == 106 && value2 > 0 {
+			// Range (layer)
+			if value1 == 0 {
+				return fmt.Sprintf("%.2g m underground", value2)
+			}
+			return fmt.Sprintf("%.2g-%.2g m below ground", value1, value2)
+		}
+		if value1 == 0 {
+			return "0 m underground"
+		}
+		return fmt.Sprintf("%.2g m below ground", value1)
+	case 200: // Entire atmosphere (single layer)
+		return "entire atmosphere (considered as a single layer)"
+	}
+
+	// Default: use table name
+	levelName := tables.GetLevelName(levelType)
+
+	// Add value if non-zero
+	if value1 != 0 {
+		return fmt.Sprintf("%s %g", levelName, value1)
+	}
+
+	return levelName
 }
 
 // String returns a human-readable summary of the field.

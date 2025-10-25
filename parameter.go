@@ -72,6 +72,8 @@ func (p ParameterID) ShortName() string {
 				return "GRLE"
 			case 82:
 				return "CIMIXR"
+			case 242:
+				return "RHPW" // Relative humidity with respect to precipitable water
 			}
 		case 2: // Momentum
 			switch p.Number {
@@ -114,6 +116,8 @@ func (p ParameterID) ShortName() string {
 				return "DIST"
 			case 9:
 				return "HPBL"
+			case 205:
+				return "LAYTH" // Layer thickness
 			}
 		case 6: // Cloud
 			switch p.Number {
@@ -148,6 +152,10 @@ func (p ParameterID) ShortName() string {
 				return "CIN"
 			case 8:
 				return "HLCY"
+			case 205:
+				return "ESP" // Echoes specifying type of precipitation
+			case 206:
+				return "CANGLE" // Convection angle
 			}
 		case 10: // Radar
 			switch p.Number {
@@ -157,6 +165,40 @@ func (p ParameterID) ShortName() string {
 				return "REFD"
 			case 6:
 				return "REFC"
+			}
+		}
+	case 2: // Land surface parameters
+		switch p.Category {
+		case 0: // Vegetation/Biomass
+			switch p.Number {
+			case 0:
+				return "LAND" // Land cover
+			case 2:
+				return "TSOIL" // Soil temperature
+			case 192:
+				return "SOILW" // Volumetric soil moisture
+			}
+		}
+	case 3: // Space products
+		switch p.Category {
+		case 192: // Forecast Satellite Imagery
+			switch p.Number {
+			case 1:
+				return "SBT123" // Simulated brightness temperature for GOES 12, channel 3
+			case 2:
+				return "SBT124" // Simulated brightness temperature for GOES 12, channel 4
+			case 7:
+				return "SBT113" // Simulated brightness temperature for GOES 11, channel 3
+			case 8:
+				return "SBT114" // Simulated brightness temperature for GOES 11, channel 4
+			}
+		}
+	case 10: // Oceanographic parameters
+		switch p.Category {
+		case 2: // Ice
+			switch p.Number {
+			case 0:
+				return "ICEC" // Ice cover
 			}
 		}
 	}
