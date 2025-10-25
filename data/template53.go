@@ -244,13 +244,16 @@ func (t *Template53) readGroupMetadata(bitReader *internal.BitReader) (*groupMet
 	}
 
 	// Read minimum values for each group (group reference values)
-	for i := uint32(0); i < t.NumberOfGroups; i++ {
-		val, err := bitReader.ReadBits(int(t.NumBitsPerValue))
-		if err != nil {
-			return nil, fmt.Errorf("failed to read group min value %d: %w", i, err)
+	if t.NumBitsPerValue > 0 {
+		for i := uint32(0); i < t.NumberOfGroups; i++ {
+			val, err := bitReader.ReadBits(int(t.NumBitsPerValue))
+			if err != nil {
+				return nil, fmt.Errorf("failed to read group min value %d: %w", i, err)
+			}
+			metadata.minVals[i] = int32(val)
 		}
-		metadata.minVals[i] = int32(val)
 	}
+	// If NumBitsPerValue == 0, all group min values remain 0 (already initialized)
 	bitReader.Align()
 
 	// Unpack group widths
