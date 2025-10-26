@@ -55,7 +55,11 @@ func validateGRIBFile(gribPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to close file: %v\n", err)
+		}
+	}()
 
 	// Find all message boundaries
 	boundaries, err := squall.FindMessagesInStream(f)
