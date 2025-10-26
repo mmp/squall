@@ -75,7 +75,7 @@ func (t *Template50) BitsPerValue() uint8 {
 //
 // If bitmap is provided, it must have length equal to the number of grid points.
 // The output will have the same length as the bitmap, with undefined values
-// set to 9.999e20 where bitmap is false.
+// set to missingValue where bitmap is false.
 //
 // If bitmap is nil, all values are assumed to be valid.
 func (t *Template50) Decode(packedData []byte, bitmap []bool) ([]float32, error) {
@@ -94,7 +94,7 @@ func (t *Template50) Decode(packedData []byte, bitmap []bool) ([]float32, error)
 				if bitmap[i] {
 					values[i] = refValue
 				} else {
-					values[i] = 9.999e20 // Missing value
+					values[i] = missingValue
 				}
 			}
 		} else {
@@ -154,7 +154,7 @@ func (t *Template50) decodeWithBitmap(packedValues []uint32, bitmap []bool) ([]f
 			values[i] = t.applyScaling(packedValues[packedIdx])
 			packedIdx++
 		} else {
-			values[i] = 9.999e20 // Missing value
+			values[i] = missingValue
 		}
 	}
 

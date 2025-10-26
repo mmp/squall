@@ -475,7 +475,7 @@ func countValid(data []float32) int {
 }
 
 func isMissing(v float32) bool {
-	return v > 9e20
+	return grib.IsMissing(v)
 }
 
 func keys(m map[string]bool) []string {

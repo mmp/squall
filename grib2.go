@@ -12,6 +12,23 @@ import (
 	"github.com/mmp/squall/tables"
 )
 
+// GRIB2 missing value constants (matching wgrib2 implementation).
+const (
+	missingValue     = 9.999e20  // The actual value written for undefined data
+	missingValueLow  = 9.9989e20 // Lower bound for range check (handles float precision)
+	missingValueHigh = 9.9991e20 // Upper bound for range check (handles float precision)
+)
+
+// IsMissing returns true if the value represents missing/undefined GRIB2 data.
+//
+// GRIB2 uses 9.999e20 as a sentinel value for missing data points (when bitmap
+// indicates undefined values). This function uses a range check (9.9989e20 to
+// 9.9991e20) to account for floating-point precision and handle GRIB2 files
+// from various sources, matching wgrib2's defensive approach.
+func IsMissing(v float32) bool {
+	return v >= missingValueLow && v <= missingValueHigh
+}
+
 // GRIB2 represents a single meteorological field from a GRIB2 message.
 //
 // This is the main public type returned by the Read function. It contains
@@ -480,7 +497,7 @@ func (g *GRIB2) MinValue() float32 {
 	minVal := g.Data[0]
 	for _, val := range g.Data {
 		// Skip missing values
-		if val > 9e20 {
+		if IsMissing(val) {
 			continue
 		}
 		if val < minVal {
@@ -499,7 +516,7 @@ func (g *GRIB2) MaxValue() float32 {
 	maxVal := g.Data[0]
 	for _, val := range g.Data {
 		// Skip missing values
-		if val > 9e20 {
+		if IsMissing(val) {
 			continue
 		}
 		if val > maxVal {
@@ -513,7 +530,7 @@ func (g *GRIB2) MaxValue() float32 {
 func (g *GRIB2) CountValid() int {
 	count := 0
 	for _, val := range g.Data {
-		if val < 9e20 { // Not a missing value
+		if !IsMissing(val) {
 			count++
 		}
 	}

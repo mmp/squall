@@ -6,6 +6,8 @@ import (
 	"math"
 	"strings"
 	"time"
+
+	"github.com/mmp/squall"
 )
 
 // FieldData represents a parsed GRIB2 field for comparison.
@@ -92,11 +94,11 @@ func ULPDiff(a, b float32) int64 {
 
 // CompareFloatsULP checks if two floats are within a specified ULP tolerance.
 func CompareFloatsULP(a, b float32, maxULP int64) bool {
-	// Handle missing values (9.999e20)
-	if a > 9e20 && b > 9e20 {
+	// Handle missing values
+	if squall.IsMissing(a) && squall.IsMissing(b) {
 		return true
 	}
-	if a > 9e20 || b > 9e20 {
+	if squall.IsMissing(a) || squall.IsMissing(b) {
 		return false
 	}
 

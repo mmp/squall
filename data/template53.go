@@ -7,6 +7,9 @@ import (
 	"github.com/mmp/squall/internal"
 )
 
+// missingValue is the GRIB2 sentinel value for undefined/missing data points.
+const missingValue = 9.999e20
+
 // Template53 represents Data Representation Template 5.3: Complex Packing with Spatial Differencing.
 //
 // This template is used for efficient compression of gridded meteorological data by:
@@ -151,7 +154,7 @@ func (t *Template53) BitsPerValue() uint8 {
 //
 // If bitmap is provided, it must have length equal to the number of grid points.
 // The output will have the same length as the bitmap, with undefined values
-// set to 9.999e20 where bitmap is false.
+// set to missingValue where bitmap is false.
 func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float32, error) {
 	if len(packedData) == 0 {
 		return nil, fmt.Errorf("no packed data to decode")
@@ -491,7 +494,7 @@ func (t *Template53) applyScalingWithBitmap(packedValues []int32, bitmap []bool)
 			values[i] = value
 			packedIdx++
 		} else {
-			values[i] = 9.999e20 // Missing value
+			values[i] = missingValue
 		}
 	}
 

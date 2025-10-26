@@ -129,7 +129,7 @@ func Example_coordinates() {
 		value := field.Data[i]
 
 		// Skip missing values
-		if value > 9e20 {
+		if squall.IsMissing(value) {
 			continue
 		}
 
