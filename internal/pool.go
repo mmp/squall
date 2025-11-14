@@ -68,6 +68,9 @@ func (p *WorkerPool) worker() {
 				case p.errors <- err:
 				case <-p.ctx.Done():
 					return
+				default:
+					// Error channel is full, drop this error to avoid deadlock
+					// The first error will still be reported
 				}
 			}
 		}

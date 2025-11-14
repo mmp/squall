@@ -35,6 +35,8 @@ type Section3 struct {
 //
 // Currently supported templates:
 //   - 0: Latitude/Longitude (equidistant cylindrical)
+//   - 10: Mercator
+//   - 20: Polar Stereographic
 //   - 30: Lambert Conformal
 //
 // Returns an error if:
@@ -82,6 +84,20 @@ func ParseSection3(data []byte) (*Section3, error) {
 		parsedGrid, err = grid.ParseLatLonGrid(templateData)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse lat/lon grid: %w", err)
+		}
+
+	case 10:
+		// Template 3.10: Mercator
+		parsedGrid, err = grid.ParseMercatorGrid(templateData)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse Mercator grid: %w", err)
+		}
+
+	case 20:
+		// Template 3.20: Polar Stereographic
+		parsedGrid, err = grid.ParsePolarStereographicGrid(templateData)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse Polar Stereographic grid: %w", err)
 		}
 
 	case 30:

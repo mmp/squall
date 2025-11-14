@@ -114,6 +114,10 @@ func createGridKey(msg *Message) (gridKey, bool) {
 		nx, ny = g.Nx, g.Ny
 	case *grid.LatLonGrid:
 		nx, ny = g.Ni, g.Nj
+	case *grid.MercatorGrid:
+		nx, ny = g.Ni, g.Nj
+	case *grid.PolarStereographicGrid:
+		nx, ny = g.Nx, g.Ny
 	default:
 		return gridKey{}, false
 	}
@@ -357,8 +361,25 @@ func populateMetadata(g2 *GRIB2, msg *Message) *GRIB2 {
 
 	if msg.Section3 != nil && msg.Section3.Grid != nil {
 		g2.GridType = fmt.Sprintf("Template %d", msg.Section3.Grid.TemplateNumber())
-		g2.GridNi = int(msg.Section3.NumDataPoints) // Simplified
-		g2.GridNj = 1                               // Simplified
+
+		// Set proper grid dimensions based on grid type
+		switch g := msg.Section3.Grid.(type) {
+		case *grid.LambertConformalGrid:
+			g2.GridNi = int(g.Nx)
+			g2.GridNj = int(g.Ny)
+		case *grid.LatLonGrid:
+			g2.GridNi = int(g.Ni)
+			g2.GridNj = int(g.Nj)
+		case *grid.MercatorGrid:
+			g2.GridNi = int(g.Ni)
+			g2.GridNj = int(g.Nj)
+		case *grid.PolarStereographicGrid:
+			g2.GridNi = int(g.Nx)
+			g2.GridNj = int(g.Ny)
+		default:
+			g2.GridNi = int(msg.Section3.NumDataPoints) // Fallback
+			g2.GridNj = 1
+		}
 	}
 
 	if msg.Section4 != nil && msg.Section4.Product != nil {

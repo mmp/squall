@@ -101,7 +101,12 @@ func readGRIBFile(filename string) []*grib.GRIB2 {
 		}
 	}()
 
-	fields, err := grib.Read(f)
+	// Use sequential parsing with skip errors for better diagnostics
+	// This allows gribinfo to show information even when some messages
+	// use unsupported templates or have parsing errors
+	fields, err := grib.ReadWithOptions(f,
+		grib.WithSequential(),
+		grib.WithSkipErrors())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error reading GRIB2 file: %v\n", err)
 		os.Exit(1)
@@ -391,6 +396,28 @@ func showGridInfo(f *grib.GRIB2) {
 				fmt.Printf("  Ref longitude:    %.4f E\n", float64(g.LoV)/1e6)
 				fmt.Printf("  Std parallels:    %.4f N, %.4f N\n",
 					float64(g.Latin1)/1e6, float64(g.Latin2)/1e6)
+
+			case *grid.MercatorGrid:
+				fmt.Printf("  First point:      %.4f N, %.4f E\n",
+					float64(g.La1)/1e6, float64(g.Lo1)/1e6)
+				fmt.Printf("  Last point:       %.4f N, %.4f E\n",
+					float64(g.La2)/1e6, float64(g.Lo2)/1e6)
+				fmt.Printf("  Grid spacing:     %.0f x %.0f meters\n",
+					float64(g.Di)/1000.0, float64(g.Dj)/1000.0)
+				fmt.Printf("  Ref latitude:     %.4f N\n", float64(g.LaD)/1e6)
+
+			case *grid.PolarStereographicGrid:
+				fmt.Printf("  First point:      %.4f N, %.4f E\n",
+					float64(g.La1)/1e6, float64(g.Lo1)/1e6)
+				fmt.Printf("  Grid spacing:     %.0f x %.0f meters\n",
+					float64(g.Dx)/1000.0, float64(g.Dy)/1000.0)
+				fmt.Printf("  Ref latitude:     %.4f N\n", float64(g.LaD)/1e6)
+				fmt.Printf("  Orient longitude: %.4f E\n", float64(g.LoV)/1e6)
+				if g.IsNorthPole() {
+					fmt.Printf("  Projection:       North Pole\n")
+				} else {
+					fmt.Printf("  Projection:       South Pole\n")
+				}
 			}
 		}
 	}
