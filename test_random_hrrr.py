@@ -103,13 +103,12 @@ def get_version(cmd: str) -> str:
 
 
 def get_available_dates(days_back: int = 365 * 11) -> List[str]:
-    """Get list of available dates from HRRR bucket, prioritizing recent dates."""
+    """Get list of available dates from HRRR bucket, uniformly distributed."""
     print(f"{Colors.BLUE}Generating date range from HRRR archive...{Colors.NC}")
 
-    # For reliability and speed, focus on recent dates where data definitely exists
-    # HRRR keeps approximately last 7-10 days of data readily available
+    # HRRR archive starts August 1, 2014
+    start_date = datetime.datetime(2014, 8, 1)
     end_date = datetime.datetime.now() - datetime.timedelta(days=1)  # Yesterday (today might be incomplete)
-    start_date = end_date - datetime.timedelta(days=10)  # Last 10 days
 
     dates = []
     current = start_date
@@ -117,10 +116,10 @@ def get_available_dates(days_back: int = 365 * 11) -> List[str]:
         dates.append(current.strftime('%Y%m%d'))
         current += datetime.timedelta(days=1)
 
-    # Shuffle for randomness
+    # Shuffle for uniform random selection
     random.shuffle(dates)
 
-    print(f"{Colors.GREEN}Generated {len(dates)} recent dates (last 10 days){Colors.NC}")
+    print(f"{Colors.GREEN}Generated {len(dates)} dates (2014-08-01 to yesterday){Colors.NC}")
     return dates
 
 
@@ -185,8 +184,13 @@ def get_random_files_from_date(date: str, count: int, max_size_mb: Optional[floa
 
 def download_file(gcs_path: str, local_path: Path) -> bool:
     """Download a GRIB2 file from GCS."""
+    # Extract the path after the bucket name to show date
+    # e.g., gs://high-resolution-rapid-refresh/hrrr.20141015/conus/file.grib2
+    # becomes hrrr.20141015/conus/file.grib2
+    display_path = gcs_path.replace('gs://high-resolution-rapid-refresh/', '')
     filename = os.path.basename(gcs_path)
-    print(f"{Colors.BLUE}Downloading: {filename}{Colors.NC}")
+
+    print(f"{Colors.BLUE}Downloading: {display_path}{Colors.NC}")
 
     try:
         result = subprocess.run(
@@ -197,17 +201,17 @@ def download_file(gcs_path: str, local_path: Path) -> bool:
 
         if result.returncode == 0 and local_path.exists():
             size_mb = local_path.stat().st_size / (1024 * 1024)
-            print(f"{Colors.GREEN}✓ Downloaded: {filename} ({size_mb:.1f} MB){Colors.NC}")
+            print(f"{Colors.GREEN}✓ Downloaded: {display_path} ({size_mb:.1f} MB){Colors.NC}")
             return True
         else:
-            print(f"{Colors.YELLOW}✗ Failed to download {filename}{Colors.NC}")
+            print(f"{Colors.YELLOW}✗ Failed to download {display_path}{Colors.NC}")
             return False
 
     except subprocess.TimeoutExpired:
-        print(f"{Colors.YELLOW}✗ Timeout downloading {filename}{Colors.NC}")
+        print(f"{Colors.YELLOW}✗ Timeout downloading {display_path}{Colors.NC}")
         return False
     except Exception as e:
-        print(f"{Colors.YELLOW}✗ Error downloading {filename}: {e}{Colors.NC}")
+        print(f"{Colors.YELLOW}✗ Error downloading {display_path}: {e}{Colors.NC}")
         return False
 
 
@@ -307,19 +311,21 @@ def main():
             print(f"{Colors.RED}Error: Could not generate date range.{Colors.NC}")
             return 1
 
-        # Collect random files from different dates
-        # Keep trying dates until we get enough files
+        # Test files as we find and download them
         if args.max_size:
-            print(f"\n{Colors.BLUE}Searching for {args.num_files} files (max {args.max_size} MB each)...{Colors.NC}")
+            print(f"\n{Colors.BLUE}Testing {args.num_files} random files (max {args.max_size} MB each)...{Colors.NC}")
         else:
-            print(f"\n{Colors.BLUE}Searching for {args.num_files} files (no size limit)...{Colors.NC}")
+            print(f"\n{Colors.BLUE}Testing {args.num_files} random files (no size limit)...{Colors.NC}")
 
-        files_to_download = []
+        passed = 0
+        failed = 0
+        failed_files = []
+        tested = 0
         dates_tried = 0
         dates_with_files = 0
 
         for date in dates:
-            if len(files_to_download) >= args.num_files:
+            if tested >= args.num_files:
                 break
 
             dates_tried += 1
@@ -329,66 +335,55 @@ def main():
 
             if date_files:
                 dates_with_files += 1
-                files_to_download.extend(date_files)
 
-                if not args.verbose:
-                    # Show progress dots
-                    if dates_with_files % 5 == 0:
-                        print(f"  Found {len(files_to_download)} files so far (tried {dates_tried} dates)...")
+                # Process each file immediately: download and test
+                for gcs_path, size in date_files:
+                    if tested >= args.num_files:
+                        break
+
+                    filename = os.path.basename(gcs_path)
+                    local_path = temp_dir / filename
+
+                    # Download the file
+                    print(f"\n{Colors.BLUE}[File {tested + 1}/{args.num_files}]{Colors.NC}")
+                    if not download_file(gcs_path, local_path):
+                        continue
+
+                    # Test immediately after download
+                    if test_file(local_path, verbose=args.verbose):
+                        passed += 1
+                    else:
+                        failed += 1
+                        failed_files.append(local_path.name)
+
+                    tested += 1
+
+                    # Clean up immediately if not keeping files
+                    if not args.keep_files:
+                        try:
+                            local_path.unlink()
+                        except Exception:
+                            pass
 
             # Safety limit: don't try forever
-            if dates_tried >= 20:
+            if dates_tried >= 50:
                 print(f"\n{Colors.YELLOW}Tried {dates_tried} dates, stopping search.{Colors.NC}")
                 break
 
-        # Trim to requested number
-        files_to_download = files_to_download[:args.num_files]
-
-        if not files_to_download:
-            print(f"{Colors.RED}Error: No GRIB2 files found.{Colors.NC}")
+        if tested == 0:
+            print(f"{Colors.RED}Error: No GRIB2 files were successfully tested.{Colors.NC}")
             if args.max_size:
                 print(f"{Colors.YELLOW}Try increasing --max-size{Colors.NC}")
             return 1
 
-        print(f"\n{Colors.GREEN}Selected {len(files_to_download)} files for testing{Colors.NC}")
-        print(f"  (Searched {dates_tried} dates, found files in {dates_with_files} dates)")
-
-        # Download files
-        print(f"\n{Colors.BLUE}Downloading files...{Colors.NC}")
-        downloaded = []
-
-        for gcs_path, size in files_to_download:
-            filename = os.path.basename(gcs_path)
-            local_path = temp_dir / filename
-
-            if download_file(gcs_path, local_path):
-                downloaded.append(local_path)
-
-        if not downloaded:
-            print(f"{Colors.RED}Error: No files were successfully downloaded.{Colors.NC}")
-            return 1
-
-        print(f"\n{Colors.GREEN}Successfully downloaded {len(downloaded)} files{Colors.NC}")
-
-        # Test each file
-        print(f"\n{Colors.BLUE}Running integration tests...{Colors.NC}")
-        passed = 0
-        failed = 0
-        failed_files = []
-
-        for file_path in downloaded:
-            if test_file(file_path, verbose=args.verbose):
-                passed += 1
-            else:
-                failed += 1
-                failed_files.append(file_path.name)
+        print(f"\n{Colors.GREEN}Searched {dates_tried} dates, found files in {dates_with_files} dates{Colors.NC}")
 
         # Summary
         print(f"\n{Colors.BLUE}{'═' * 60}{Colors.NC}")
         print(f"{Colors.BOLD}  Test Summary{Colors.NC}")
         print(f"{Colors.BLUE}{'═' * 60}{Colors.NC}\n")
 
-        print(f"Total files tested: {len(downloaded)}")
+        print(f"Total files tested: {tested}")
         print(f"{Colors.GREEN}Passed: {passed}{Colors.NC}")
 
         if failed > 0:
@@ -401,9 +396,11 @@ def main():
         if args.keep_files:
             print(f"\nTest files kept at: {Colors.CYAN}{temp_dir}{Colors.NC}")
         else:
-            print(f"\n{Colors.YELLOW}Cleaning up downloaded files...{Colors.NC}")
-            shutil.rmtree(temp_dir)
-            print(f"{Colors.GREEN}Cleanup complete.{Colors.NC}")
+            # Files were already cleaned up during testing, just remove temp dir
+            try:
+                shutil.rmtree(temp_dir)
+            except Exception:
+                pass
 
         # Exit with appropriate code
         if failed > 0:
