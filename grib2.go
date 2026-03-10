@@ -95,39 +95,78 @@ func Read(r io.ReadSeeker) ([]*GRIB2, error) {
 	return ReadWithOptions(r)
 }
 
-// gridKey uniquely identifies a grid configuration for coordinate caching
+// gridKey uniquely identifies a grid configuration for coordinate caching.
+// It includes all grid definition parameters that affect coordinate computation,
+// so two grids with the same dimensions but different origins or projections
+// will not incorrectly share cached coordinates.
 type gridKey struct {
 	templateNumber uint16
 	numDataPoints  uint32
 	nx, ny         uint32
+	// Grid definition parameters that affect coordinate computation.
+	// Fields are shared across grid types; unused fields remain zero-valued.
+	la1, lo1, la2, lo2 int32
+	di, dj             uint32
+	scanningMode       uint8
+	laD, loV           int32
+	dx, dy             uint32
+	latin1, latin2     int32
+	latSouthPole       int32
+	lonSouthPole       int32
+	projectionCenter   uint8
+	orientation        uint32
+	lo1Unsigned        uint32 // PolarStereographic uses unsigned Lo1
 }
 
-// createGridKey creates a unique key for a grid
+// createGridKey creates a unique key for a grid based on all coordinate-relevant parameters.
 func createGridKey(msg *Message) (gridKey, bool) {
 	if msg.Section3 == nil || msg.Section3.Grid == nil {
 		return gridKey{}, false
 	}
 
-	var nx, ny uint32
+	k := gridKey{
+		templateNumber: msg.Section3.TemplateNumber,
+		numDataPoints:  msg.Section3.NumDataPoints,
+	}
+
 	switch g := msg.Section3.Grid.(type) {
-	case *grid.LambertConformalGrid:
-		nx, ny = g.Nx, g.Ny
 	case *grid.LatLonGrid:
-		nx, ny = g.Ni, g.Nj
+		k.nx, k.ny = g.Ni, g.Nj
+		k.la1, k.lo1 = g.La1, g.Lo1
+		k.la2, k.lo2 = g.La2, g.Lo2
+		k.di, k.dj = g.Di, g.Dj
+		k.scanningMode = g.ScanningMode
+	case *grid.LambertConformalGrid:
+		k.nx, k.ny = g.Nx, g.Ny
+		k.la1, k.lo1 = g.La1, g.Lo1
+		k.laD, k.loV = g.LaD, g.LoV
+		k.dx, k.dy = g.Dx, g.Dy
+		k.scanningMode = g.ScanningMode
+		k.latin1, k.latin2 = g.Latin1, g.Latin2
+		k.latSouthPole = g.LatSouthPole
+		k.lonSouthPole = g.LonSouthPole
+		k.projectionCenter = g.ProjectionCenter
 	case *grid.MercatorGrid:
-		nx, ny = g.Ni, g.Nj
+		k.nx, k.ny = g.Ni, g.Nj
+		k.la1, k.lo1 = g.La1, g.Lo1
+		k.la2, k.lo2 = g.La2, g.Lo2
+		k.laD = g.LaD
+		k.di, k.dj = g.Di, g.Dj
+		k.scanningMode = g.ScanningMode
+		k.orientation = g.Orientation
 	case *grid.PolarStereographicGrid:
-		nx, ny = g.Nx, g.Ny
+		k.nx, k.ny = g.Nx, g.Ny
+		k.la1 = g.La1
+		k.lo1Unsigned = g.Lo1
+		k.laD, k.loV = g.LaD, g.LoV
+		k.dx, k.dy = g.Dx, g.Dy
+		k.scanningMode = g.ScanningMode
+		k.projectionCenter = g.ProjectionCenter
 	default:
 		return gridKey{}, false
 	}
 
-	return gridKey{
-		templateNumber: msg.Section3.TemplateNumber,
-		numDataPoints:  msg.Section3.NumDataPoints,
-		nx:             nx,
-		ny:             ny,
-	}, true
+	return k, true
 }
 
 // coordinateCache stores pre-computed coordinates for unique grids
