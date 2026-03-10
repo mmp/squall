@@ -128,7 +128,7 @@ jobs:
         # Create build directory
         mkdir build && cd build
         # Configure with CMake (minimal build without optional deps)
-        cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/wgrib2
+        cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/wgrib2 -DUSE_G2CLIB=OFF
         # Build
         make -j$(nproc)
         # Install to cache directory

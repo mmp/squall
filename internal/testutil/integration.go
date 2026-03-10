@@ -105,8 +105,8 @@ func compareArrays(
 func (r *IntegrationTestResult) String() string {
 	var b strings.Builder
 
-	b.WriteString(fmt.Sprintf("Integration Test Results: %s\n", r.FileName))
-	b.WriteString(fmt.Sprintf("Total fields: %d, Compared: %d\n\n", r.TotalFields, r.FieldsCompared))
+	fmt.Fprintf(&b, "Integration Test Results: %s\n", r.FileName)
+	fmt.Fprintf(&b, "Total fields: %d, Compared: %d\n\n", r.TotalFields, r.FieldsCompared)
 
 	// Wgrib2 comparison
 	if len(r.Wgrib2Comparisons) > 0 {
@@ -129,7 +129,7 @@ func (r *IntegrationTestResult) String() string {
 	if len(r.Errors) > 0 {
 		b.WriteString("\n=== Errors ===\n")
 		for _, err := range r.Errors {
-			b.WriteString(fmt.Sprintf("  - %s\n", err))
+			fmt.Fprintf(&b, "  - %s\n", err)
 		}
 	}
 
