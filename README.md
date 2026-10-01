@@ -150,6 +150,8 @@ Note that **squall**'s support for GRIB files is not complete, though it suffice
 
 ### Grid Types
 - Latitude/Longitude regular grids (Template 3.0)
+- Mercator (Template 3.10)
+- Polar Stereographic (Template 3.20)
 - Lambert Conformal (Template 3.30)
 
 ### Data Packing
