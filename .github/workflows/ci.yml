@@ -103,38 +103,52 @@ jobs:
       with:
         go-version: '1.23'
 
-    - name: Get wgrib2 latest commit hash
+    - name: Get wgrib2 and g2c latest commit hashes
       id: wgrib2-version
       run: |
         WGRIB2_COMMIT=$(git ls-remote https://github.com/NOAA-EMC/wgrib2.git HEAD | cut -f1)
-        echo "commit=$WGRIB2_COMMIT" >> $GITHUB_OUTPUT
-        echo "wgrib2 latest commit: $WGRIB2_COMMIT"
+        G2C_COMMIT=$(git ls-remote https://github.com/NOAA-EMC/NCEPLIBS-g2c.git HEAD | cut -f1)
+        echo "commit=$WGRIB2_COMMIT-$G2C_COMMIT" >> $GITHUB_OUTPUT
+        echo "wgrib2 latest commit: $WGRIB2_COMMIT, g2c latest commit: $G2C_COMMIT"
 
     - name: Cache wgrib2
       id: cache-wgrib2
       uses: actions/cache@v4
       with:
         path: ~/wgrib2
-        key: wgrib2-${{ runner.os }}-${{ steps.wgrib2-version.outputs.commit }}
+        key: wgrib2-jpeg2000-${{ runner.os }}-${{ steps.wgrib2-version.outputs.commit }}
 
-    - name: Build wgrib2 from source (minimal build)
-      if: steps.cache-wgrib2.outputs.cache-hit != 'true'
+    - name: Install wgrib2 dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y cmake gcc gfortran make
-        # Clone wgrib2
-        git clone https://github.com/NOAA-EMC/wgrib2.git $HOME/wgrib2-src
-        cd $HOME/wgrib2-src
-        # Create build directory
-        mkdir build && cd build
-        # Configure with CMake (minimal build without optional deps)
-        cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/wgrib2 -DUSE_G2CLIB=OFF
-        # Build
-        make -j$(nproc)
-        # Install to cache directory
-        make install
-        # Verify the build (wgrib2 -version returns non-zero exit code)
+        sudo apt-get install -y cmake gcc make libopenjp2-7-dev libpng-dev zlib1g-dev
+
+    # wgrib2 decodes JPEG 2000 (and PNG) packing with NCEP's g2c library,
+    # which must be built with OpenJPEG or JasPer.
+    - name: Build wgrib2 from source, with JPEG 2000 support
+      if: steps.cache-wgrib2.outputs.cache-hit != 'true'
+      run: |
+        git clone --depth 1 https://github.com/NOAA-EMC/NCEPLIBS-g2c.git $HOME/g2c-src
+        cmake -S $HOME/g2c-src -B $HOME/g2c-src/build -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=$HOME/wgrib2 -DCMAKE_INSTALL_RPATH=$HOME/wgrib2/lib \
+          -DUSE_OpenJPEG=ON -DUSE_Jasper=OFF -DUSE_PNG=ON -DUTILS=OFF
+        cmake --build $HOME/g2c-src/build -j$(nproc)
+        cmake --install $HOME/g2c-src/build
+
+        git clone --depth 1 https://github.com/NOAA-EMC/wgrib2.git $HOME/wgrib2-src
+        cmake -S $HOME/wgrib2-src -B $HOME/wgrib2-src/build -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=$HOME/wgrib2 -DCMAKE_INSTALL_RPATH=$HOME/wgrib2/lib \
+          -DCMAKE_PREFIX_PATH=$HOME/wgrib2 -DUSE_G2CLIB=ON -DBUILD_SHARED_LIB=OFF
+        cmake --build $HOME/wgrib2-src/build -j$(nproc)
+        cmake --install $HOME/wgrib2-src/build
+
+    - name: Check wgrib2 JPEG 2000 support
+      run: |
+        # wgrib2 -version and -config return a non-zero exit code
         $HOME/wgrib2/bin/wgrib2 -version || true
+        config=$($HOME/wgrib2/bin/wgrib2 -config || true)
+        echo "$config" | grep "Supported decoding"
+        echo "$config" | grep -q jpeg2000
 
     - name: Add wgrib2 to PATH
       run: echo "$HOME/wgrib2/bin" >> $GITHUB_PATH
@@ -150,4 +164,3 @@ jobs:
 
     - name: Run integration tests
       run: go test -v -run TestIntegration ./...
-      continue-on-error: true  # wgrib2 may not support all test files
