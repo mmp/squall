@@ -110,3 +110,31 @@ func TestLambertConformalGrid_TemplateNumber(t *testing.T) {
 		t.Errorf("TemplateNumber() = %d, want 30", g.TemplateNumber())
 	}
 }
+
+// With boustrophedonic scanning (bit 0x10), odd rows run in the opposite
+// direction, as in NDFD grids.
+func TestLambertConformalGrid_AlternatingRows(t *testing.T) {
+	g := LambertConformalGrid{
+		Nx: 5, Ny: 3,
+		La1: 40409178, Lo1: 263379162, LoV: 262500000,
+		Latin1: 38500000, Latin2: 38500000,
+		Dx: 3000000, Dy: 3000000,
+		ScanningMode: 0x40,
+	}
+	lats, lons := g.Coordinates()
+	g.ScanningMode = 0x50
+	altLats, altLons := g.Coordinates()
+
+	for j := range 3 {
+		for i := range 5 {
+			k := j*5 + i
+			if j%2 == 1 {
+				k = j*5 + 4 - i
+			}
+			if altLats[j*5+i] != lats[k] || altLons[j*5+i] != lons[k] {
+				t.Errorf("row %d, point %d: got (%v, %v), want (%v, %v)", j, i,
+					altLats[j*5+i], altLons[j*5+i], lats[k], lons[k])
+			}
+		}
+	}
+}

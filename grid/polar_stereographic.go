@@ -167,15 +167,23 @@ func (g *PolarStereographicGrid) Coordinates() ([]float32, []float32) {
 	iPositive := (g.ScanningMode & 0x80) == 0 // bit 0: 0 = +i, 1 = -i
 	jPositive := (g.ScanningMode & 0x40) != 0 // bit 1: 0 = -j, 1 = +j
 
+	alternating := g.ScanningMode&0x10 != 0
+
 	idx := 0
 	for j := uint32(0); j < g.Ny; j++ {
 		for i := uint32(0); i < g.Nx; i++ {
-			// Calculate grid coordinates relative to first point
+			// Calculate grid coordinates relative to first point. With
+			// boustrophedonic scanning, odd rows run in the opposite
+			// direction of the first row.
+			col := i
+			if alternating && j%2 == 1 {
+				col = g.Nx - 1 - i
+			}
 			var deltaX, deltaY float64
 			if iPositive {
-				deltaX = float64(i) * dx
+				deltaX = float64(col) * dx
 			} else {
-				deltaX = -float64(i) * dx
+				deltaX = -float64(col) * dx
 			}
 			if jPositive {
 				deltaY = float64(j) * dy

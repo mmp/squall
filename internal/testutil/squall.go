@@ -96,7 +96,8 @@ func reorderWESN(v []float32, ni, nj int, mode uint8) []float32 {
 	iNegative := mode&0x80 != 0
 	jPositive := mode&0x40 != 0
 	consecutive := mode&0x20 == 0
-	if !iNegative && jPositive && consecutive {
+	alternating := mode&0x10 != 0 // boustrophedonic: odd rows are reversed
+	if !iNegative && jPositive && consecutive && !alternating {
 		return v
 	}
 	out := make([]float32, len(v))
@@ -104,6 +105,9 @@ func reorderWESN(v []float32, ni, nj int, mode uint8) []float32 {
 		i, j := idx%ni, idx/ni
 		if !consecutive {
 			i, j = idx/nj, idx%nj
+		}
+		if alternating && j%2 == 1 {
+			i = ni - 1 - i
 		}
 		if iNegative {
 			i = ni - 1 - i
