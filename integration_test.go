@@ -35,35 +35,21 @@ func TestIntegrationWithRealFiles(t *testing.T) {
 
 	// Files known to work correctly with wgrib2 comparison
 	// Files not in this list have known issues (unsupported packing types, parsing bugs, etc.)
+	// Files that wgrib2 can't decode (e.g., icon_global.grib2, which has an
+	// unstructured grid, or JPEG 2000 files if wgrib2 was built without
+	// support for it) are skipped.
 	knownGoodFiles := []string{
+		"gfs.t00z.pgrb2.0p25.f001",
 		"hrrr-iowa-subset.grib2",
 		"icon_global.grib2",
 		"wave.grib2",
-		// "cmc_jpeg2000.grib2" - JPEG2000 packing not yet supported
 	}
 
-	// Find all .grib2 files
-	matches, err := filepath.Glob(filepath.Join(testgribsDir, "*.grib2"))
-	if err != nil {
-		t.Fatalf("failed to search for GRIB2 files: %v", err)
-	}
-
-	// Also try .grb2 extension
-	matches2, err := filepath.Glob(filepath.Join(testgribsDir, "*.grb2"))
-	if err != nil {
-		t.Fatalf("failed to search for .grb2 files: %v", err)
-	}
-	matches = append(matches, matches2...)
-
-	// Filter to only test known-good files
 	var filesToTest []string
-	for _, match := range matches {
-		basename := filepath.Base(match)
-		for _, goodFile := range knownGoodFiles {
-			if basename == goodFile {
-				filesToTest = append(filesToTest, match)
-				break
-			}
+	for _, goodFile := range knownGoodFiles {
+		path := filepath.Join(testgribsDir, goodFile)
+		if _, err := os.Stat(path); err == nil {
+			filesToTest = append(filesToTest, path)
 		}
 	}
 
@@ -115,6 +101,12 @@ func testGRIB2File(t *testing.T, gribFile string) {
 	result, err := testutil.CompareImplementations(gribFile, maxULP)
 	if err != nil {
 		t.Fatalf("comparison failed: %v", err)
+	}
+
+	// If wgrib2 couldn't decode the file (e.g., it was built without
+	// JPEG 2000 support), there is nothing to compare against.
+	if result.Wgrib2Error != nil {
+		t.Skipf("wgrib2 could not decode %s: %v", filepath.Base(gribFile), result.Wgrib2Error)
 	}
 
 	// Log full results

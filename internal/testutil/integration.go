@@ -18,6 +18,11 @@ type IntegrationTestResult struct {
 	// Summary
 	AllWgrib2Match bool
 	Errors         []string
+
+	// Wgrib2Error is set if wgrib2 could not decode the file, for example
+	// because it was built without support for one of its packing types;
+	// in that case nothing was compared.
+	Wgrib2Error error
 }
 
 // CompareImplementations compares squall against wgrib2 for a given GRIB2 file.
@@ -46,7 +51,7 @@ func CompareImplementations(gribFile string, maxULP int64) (*IntegrationTestResu
 	// Parse with wgrib2 (NOAA reference implementation)
 	wgrib2Fields, err := ParseWgrib2(gribFile)
 	if err != nil {
-		result.Errors = append(result.Errors, fmt.Sprintf("wgrib2 parse failed: %v", err))
+		result.Wgrib2Error = err
 	} else {
 		// Compare squall vs wgrib2 message by message
 		compareArrays(mgribFields, wgrib2Fields, maxULP, result)
@@ -125,6 +130,10 @@ func (r *IntegrationTestResult) String() string {
 		}
 	}
 
+	if r.Wgrib2Error != nil {
+		fmt.Fprintf(&b, "\nwgrib2 could not decode the file: %v\n", r.Wgrib2Error)
+	}
+
 	// Errors
 	if len(r.Errors) > 0 {
 		b.WriteString("\n=== Errors ===\n")
@@ -138,17 +147,8 @@ func (r *IntegrationTestResult) String() string {
 
 // Passed returns true if all comparisons passed.
 //
-// Checks metadata, coordinates, and data matches.
+// Checks metadata, coordinates, and data matches. If wgrib2 could not
+// decode the file, nothing was compared, so it did not pass.
 func (r *IntegrationTestResult) Passed() bool {
-	// Check wgrib2 comparison (NOAA reference implementation)
-	// A test passes if all wgrib2 comparisons match (metadata, coordinates, and data) and there are no critical errors
-	hasNonParseErrors := false
-	for _, err := range r.Errors {
-		// Ignore wgrib2 parse errors for unsupported features
-		if !strings.Contains(err, "wgrib2 parse failed") {
-			hasNonParseErrors = true
-			break
-		}
-	}
-	return r.AllWgrib2Match && !hasNonParseErrors
+	return r.Wgrib2Error == nil && r.AllWgrib2Match && len(r.Errors) == 0
 }
