@@ -37,7 +37,9 @@ func ParseWgrib2(gribFile string) ([]*FieldData, error) {
 	}
 
 	// First, get the inventory to know how many messages there are
-	invCmd := exec.Command(wgrib2Path, gribFile)
+	// -T adds the full reference time (the default inventory only gives
+	// the hour) as a final ":D=YYYYMMDDHHMMSS" field.
+	invCmd := exec.Command(wgrib2Path, gribFile, "-s", "-T")
 	invOutput, err := invCmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("wgrib2 inventory failed: %v\nOutput: %s", err, invOutput)
@@ -186,9 +188,15 @@ func parseInventory(inv string) ([]messageMetadata, error) {
 			return nil, fmt.Errorf("invalid reference time: %v", err)
 		}
 
-		field := matches[3]
+		field := normalizeWgrib2FieldName(matches[3])
 		level := matches[4]
 		forecast := strings.TrimSpace(matches[5])
+		if i := strings.LastIndex(forecast, ":D="); i >= 0 {
+			if t, err := parseWgrib2Time(forecast[i+3:]); err == nil {
+				refTime = t
+			}
+			forecast = strings.TrimRight(forecast[:i], ":")
+		}
 
 		// Compute verification time
 		// If forecast is "anl" (analysis), verTime = refTime
@@ -372,4 +380,17 @@ func readIEEEBinary(path string) ([]float32, error) {
 	}
 
 	return values, nil
+}
+
+// unknownWgrib2Field matches wgrib2's name for a parameter that isn't in its
+// tables.
+var unknownWgrib2Field = regexp.MustCompile(`^var discipline=(\d+) center=\d+ local_table=\d+ parmcat=(\d+) parm=(\d+)$`)
+
+// normalizeWgrib2FieldName gives unknown parameters the same name as
+// squall's in ParseMgrib2.
+func normalizeWgrib2FieldName(name string) string {
+	if m := unknownWgrib2Field.FindStringSubmatch(name); m != nil {
+		return fmt.Sprintf("unknown parameter %s.%s.%s", m[1], m[2], m[3])
+	}
+	return name
 }

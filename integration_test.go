@@ -43,6 +43,9 @@ func TestIntegrationWithRealFiles(t *testing.T) {
 		"hrrr-iowa-subset.grib2",
 		"icon_global.grib2",
 		"wave.grib2",
+		"cmc_jpeg2000.grib2",
+		"ndfd_conus_temp.grib2",
+		"nam.t00z.hawaiinest.hiresf00.tm00.grib2",
 	}
 
 	var filesToTest []string

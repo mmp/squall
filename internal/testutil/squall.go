@@ -4,9 +4,11 @@ package testutil
 import (
 	"fmt"
 	"os"
+	"time"
 
 	grib "github.com/mmp/squall"
 	"github.com/mmp/squall/grid"
+	"github.com/mmp/squall/product"
 )
 
 // ParseMgrib2 parses a GRIB2 file using squall (this implementation).
@@ -34,15 +36,22 @@ func ParseMgrib2(gribFile string) ([]*FieldData, error) {
 	fieldArray := make([]*FieldData, 0, len(fields))
 
 	for _, field := range fields {
-		// TODO: Calculate verification time from forecast time
-		// For now, use reference time for both
+		// The wgrib2 inventory gives verification times for forecasts at a
+		// point in time ("1 hour fcst"); compute the same here.
 		verTime := field.ReferenceTime
+		if msg := field.GetMessage(); msg != nil && msg.Section4 != nil {
+			if t, ok := msg.Section4.Product.(*product.Template40); ok {
+				if d, ok := forecastDuration(t.TimeRangeUnit, t.ForecastTime); ok {
+					verTime = verTime.Add(d)
+				}
+			}
+		}
 
 		// Use short name for comparison with wgrib2 (if available)
-		fieldName := field.Parameter.ShortName()
+		fieldName := field.ShortName()
 		if fieldName == "" {
-			// Fall back to full name if no short name exists
-			fieldName = field.Parameter.String()
+			p := field.Parameter
+			fieldName = fmt.Sprintf("unknown parameter %d.%d.%d", p.Discipline, p.Category, p.Number)
 		}
 
 		// wgrib2 gives coordinates only in we:sn order, so put squall's
@@ -118,4 +127,20 @@ func reorderWESN(v []float32, ni, nj int, mode uint8) []float32 {
 		out[j*ni+i] = x
 	}
 	return out
+}
+
+// forecastDuration converts a forecast time to a duration given its unit
+// (Code Table 4.4).
+func forecastDuration(unit uint8, value uint32) (time.Duration, bool) {
+	units := map[uint8]time.Duration{
+		0:  time.Minute,
+		1:  time.Hour,
+		2:  24 * time.Hour,
+		10: 3 * time.Hour,
+		11: 6 * time.Hour,
+		12: 12 * time.Hour,
+		13: time.Second,
+	}
+	u, ok := units[unit]
+	return time.Duration(value) * u, ok
 }
