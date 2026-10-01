@@ -268,6 +268,10 @@ func GetParameterName(discipline, category, parameter int) string {
 		}
 	}
 
+	if p, ok := LookupParameter(discipline, category, parameter); ok {
+		return p.Description
+	}
+
 	return fmt.Sprintf("Unknown parameter (%d.%d.%d)", discipline, category, parameter)
 }
 
@@ -294,6 +298,9 @@ func GetParameterUnit(discipline, category, parameter int) string {
 		}
 	}
 
+	if p, ok := LookupParameter(discipline, category, parameter); ok {
+		return p.Unit
+	}
 	return ""
 }
 
