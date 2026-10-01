@@ -1,6 +1,7 @@
 package squall
 
 import (
+	"bytes"
 	"math"
 	"testing"
 )
@@ -363,5 +364,125 @@ func TestParseMessageInvalid(t *testing.T) {
 				t.Error("expected error, got nil")
 			}
 		})
+	}
+}
+
+// makeMultiFieldMessage returns a message holding two fields on the
+// 3x3 grid of makeCompleteGRIB2Message: the first defines a bitmap with 7
+// points present, and the second reuses it with bitmap indicator 254 if
+// reuseBitmap is true or has no bitmap section of its own otherwise.
+func makeMultiFieldMessage(reuseBitmap bool) []byte {
+	base := makeCompleteGRIB2Message()
+	head := base[:123] // Sections 0, 1, and 3
+	sec4 := base[123:166]
+	sec5 := append([]byte(nil), base[166:188]...)
+	sec5[8] = 7 // 7 data values
+	sec5b := append([]byte(nil), sec5...)
+	sec5b[11], sec5b[12], sec5b[13], sec5b[14] = 0x42, 0xC8, 0x00, 0x00 // reference value 100
+	sec7 := func(start byte) []byte {
+		s := []byte{0, 0, 0, 12, 7}
+		for i := range byte(7) {
+			s = append(s, start+i)
+		}
+		return s
+	}
+
+	var msg []byte
+	msg = append(msg, head...)
+	msg = append(msg, sec4...)
+	msg = append(msg, sec5...)
+	msg = append(msg, 0, 0, 0, 8, 6, 0, 0b10110111, 0b10000000) // bitmap
+	msg = append(msg, sec7(0)...)
+	msg = append(msg, sec4...)
+	msg = append(msg, sec5b...)
+	if reuseBitmap {
+		msg = append(msg, 0, 0, 0, 6, 6, 254)
+	} else {
+		msg = append(msg, 0, 0, 0, 6, 6, 255)
+	}
+	msg = append(msg, sec7(10)...)
+	msg = append(msg, "7777"...)
+	for i := range 8 {
+		msg[8+i] = byte(uint64(len(msg)) >> (56 - 8*i))
+	}
+	return msg
+}
+
+func TestParseMessageFields(t *testing.T) {
+	data := makeMultiFieldMessage(true)
+	fields, err := ParseMessageFields(data)
+	if err != nil {
+		t.Fatalf("ParseMessageFields failed: %v", err)
+	}
+	if len(fields) != 2 {
+		t.Fatalf("got %d fields, want 2", len(fields))
+	}
+
+	present := []bool{true, false, true, true, false, true, true, true, true}
+	for i, ref := range []float32{250, 110} {
+		m := fields[i]
+		if m.Section3 != fields[0].Section3 {
+			t.Errorf("field %d does not share Section 3", i)
+		}
+		values, err := m.DecodeData()
+		if err != nil {
+			t.Fatalf("field %d: DecodeData failed: %v", i, err)
+		}
+		if len(values) != 9 {
+			t.Fatalf("field %d: got %d values, want 9", i, len(values))
+		}
+		next := ref
+		for j, v := range values {
+			if !present[j] {
+				if !IsMissing(v) {
+					t.Errorf("field %d: value %d = %v, want missing", i, j, v)
+				}
+				continue
+			}
+			if v != next {
+				t.Errorf("field %d: value %d = %v, want %v", i, j, v, next)
+			}
+			next++
+		}
+	}
+
+	first, err := ParseMessage(data)
+	if err != nil {
+		t.Fatalf("ParseMessage failed: %v", err)
+	}
+	if values, err := first.DecodeData(); err != nil || values[0] != 250 {
+		t.Errorf("ParseMessage did not return the first field (values %v, error %v)", values, err)
+	}
+
+	// Read returns both fields.
+	records, err := Read(bytes.NewReader(data))
+	if err != nil {
+		t.Fatalf("Read failed: %v", err)
+	}
+	if len(records) != 2 {
+		t.Errorf("Read returned %d records, want 2", len(records))
+	}
+}
+
+func TestParseMessageFieldsBitmapErrors(t *testing.T) {
+	// Bitmap indicator 254 with no earlier bitmap in the message.
+	data := makeMultiFieldMessage(true)
+	bitmapSec6 := []byte{0, 0, 0, 8, 6, 0, 0b10110111, 0b10000000}
+	i := bytes.Index(data, bitmapSec6)
+	if i < 0 {
+		t.Fatal("bitmap section not found")
+	}
+	data[i+5] = 254
+	if _, err := ParseMessageFields(data); err == nil {
+		t.Error("expected error for bitmap indicator 254 with no previous bitmap")
+	}
+
+	// Without a bitmap, the second field has 7 values for 9 grid points.
+	fields, err := ParseMessageFields(makeMultiFieldMessage(false))
+	if err != nil {
+		t.Fatalf("ParseMessageFields failed: %v", err)
+	}
+	if fields[1].Section6.HasBitmap() {
+		t.Error("second field should not have a bitmap")
 	}
 }

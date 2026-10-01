@@ -215,9 +215,12 @@ func TestParseSection6PreviouslyDefined(t *testing.T) {
 	data := makeSection6NoBitmap()
 	data[5] = 254 // Previously defined bitmap
 
-	_, err := ParseSection6(data, 10)
-	if err == nil {
-		t.Fatal("expected error for unsupported bitmap indicator 254, got nil")
+	sec6, err := ParseSection6(data, 10)
+	if err != nil {
+		t.Fatalf("ParseSection6 failed: %v", err)
+	}
+	if sec6.BitmapIndicator != 254 || sec6.Bitmap != nil {
+		t.Errorf("got indicator %d, bitmap %v; want 254 and nil", sec6.BitmapIndicator, sec6.Bitmap)
 	}
 }
 

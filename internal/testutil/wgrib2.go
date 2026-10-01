@@ -83,7 +83,7 @@ func ParseWgrib2(gribFile string) ([]*FieldData, error) {
 		// -no_header removes fortran-style headers
 		// -little_endian ensures proper endianness for Go's binary.Read
 		cmd := exec.Command(wgrib2Path, gribFile,
-			"-d", fmt.Sprintf("%d", i+1),
+			"-d", msg.id,
 			"-order", "we:sn",
 			"-gridout", coordPath,
 			"-no_header",
@@ -141,7 +141,7 @@ func ParseWgrib2(gribFile string) ([]*FieldData, error) {
 
 // messageMetadata holds metadata parsed from wgrib2 inventory output.
 type messageMetadata struct {
-	msgNum  int
+	id      string // message number, with a submessage number if there are several fields ("5.2")
 	refTime time.Time
 	verTime time.Time
 	field   string
@@ -162,8 +162,8 @@ func parseInventory(inv string) ([]messageMetadata, error) {
 	var messages []messageMetadata
 
 	// Regex to parse inventory lines
-	// Format: msgnum:offset:d=YYYYMMDDHH:field:level:forecast
-	re := regexp.MustCompile(`^(\d+):\d+:d=(\d{10})(?:\d{2})?:([^:]+):([^:]+):(.*)$`)
+	// Format: msgnum[.submsg]:offset:d=YYYYMMDDHH:field:level:forecast
+	re := regexp.MustCompile(`^(\d+(?:\.\d+)?):\d+:d=(\d{10})(?:\d{2})?:([^:]+):([^:]+):(.*)$`)
 
 	scanner := bufio.NewScanner(strings.NewReader(inv))
 	for scanner.Scan() {
@@ -177,11 +177,6 @@ func parseInventory(inv string) ([]messageMetadata, error) {
 			// Try to be lenient - some messages have different formats
 			// Just extract what we can
 			continue
-		}
-
-		msgNum, err := strconv.Atoi(matches[1])
-		if err != nil {
-			return nil, fmt.Errorf("invalid message number: %v", err)
 		}
 
 		// Parse reference time (format: YYYYMMDDhh or YYYYMMDDhhmm)
@@ -208,7 +203,7 @@ func parseInventory(inv string) ([]messageMetadata, error) {
 		}
 
 		messages = append(messages, messageMetadata{
-			msgNum:  msgNum,
+			id:      matches[1],
 			refTime: refTime,
 			verTime: verTime,
 			field:   field,

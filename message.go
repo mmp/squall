@@ -56,110 +56,187 @@ type Message struct {
 //   - Section 7: Data
 //   - Section 8: End marker "7777"
 //
-// Note: Currently assumes one field per message. Multi-field messages
-// (where sections 3-7 repeat) are not yet supported.
+// A message may hold more than one field; ParseMessage returns the first.
+// Use ParseMessageFields to get all of them.
 func ParseMessage(data []byte) (*Message, error) {
+	fields, err := ParseMessageFields(data)
+	if err != nil {
+		return nil, err
+	}
+	return fields[0], nil
+}
+
+// ParseMessageFields parses all of the fields in a GRIB2 message, returning
+// a Message for each.
+//
+// Most messages hold a single field, but sequences of Sections 2-7, 3-7, or
+// 4-7 may be repeated to pack several fields into one message; NCEP does
+// this, for example, for the U and V wind components in the NAM nests.
+// Sections that are not repeated are shared by the fields that follow
+// them. A field whose Section 6 has bitmap indicator 254 ("previously
+// defined bitmap") is given the bitmap most recently defined in the
+// message.
+func ParseMessageFields(data []byte) ([]*Message, error) {
 	if err := ValidateMessageStructure(data); err != nil {
 		return nil, err
 	}
 
-	msg := &Message{
-		RawData: data,
-	}
-
-	offset := 0
-
 	// Parse Section 0 (always 16 bytes)
-	sec0, err := section.ParseSection0(data[offset : offset+16])
+	sec0, err := section.ParseSection0(data[:16])
 	if err != nil {
 		return nil, &ParseError{
 			Section:    0,
-			Offset:     offset,
+			Offset:     0,
 			Message:    "failed to parse Section 0",
 			Underlying: err,
 		}
 	}
-	msg.Section0 = sec0
-	offset += 16
+	offset := 16
 
 	// Parse Section 1 (variable length)
 	sec1, err := parseSectionAt(data, offset, 1)
 	if err != nil {
 		return nil, err
 	}
-	msg.Section1 = sec1.(*section.Section1)
 	offset += int(sec1.(*section.Section1).Length)
 
-	// Check for optional Section 2
-	if offset < len(data)-4 && data[offset+4] == 2 {
-		sec2, err := parseSectionAt(data, offset, 2)
-		if err != nil {
-			return nil, err
+	// The sections that apply to the next field, updated as they appear.
+	cur := Message{
+		Section0: sec0,
+		Section1: sec1.(*section.Section1),
+		RawData:  data,
+	}
+	var bitmap []bool // the most recently defined bitmap
+	// Sections 4-6 must appear for each field.
+	var have4, have5, have6 bool
+
+	var fields []*Message
+	end := len(data) - 4 // the "7777" end marker
+	for offset < end {
+		if offset+5 > end {
+			return nil, &ParseError{
+				Section: -1,
+				Offset:  offset,
+				Message: "truncated section header",
+			}
 		}
-		msg.Section2 = sec2.(*section.Section2)
-		offset += int(sec2.(*section.Section2).Length)
+		num := data[offset+4]
+
+		var length uint32
+		switch num {
+		case 2:
+			sec2, err := parseSectionAt(data, offset, 2)
+			if err != nil {
+				return nil, err
+			}
+			cur.Section2 = sec2.(*section.Section2)
+			length = cur.Section2.Length
+
+		case 3:
+			sec3, err := parseSectionAt(data, offset, 3)
+			if err != nil {
+				return nil, err
+			}
+			cur.Section3 = sec3.(*section.Section3)
+			length = cur.Section3.Length
+
+		case 4:
+			sec4, err := parseSectionAt(data, offset, 4)
+			if err != nil {
+				return nil, err
+			}
+			cur.Section4 = sec4.(*section.Section4)
+			length = cur.Section4.Length
+			have4 = true
+
+		case 5:
+			sec5, err := parseSectionAt(data, offset, 5)
+			if err != nil {
+				return nil, err
+			}
+			cur.Section5 = sec5.(*section.Section5)
+			length = cur.Section5.Length
+			have5 = true
+
+		case 6:
+			// Section 6 needs the number of grid points from Section 3
+			if cur.Section3 == nil {
+				return nil, &ParseError{Section: 6, Offset: offset, Message: "Section 6 precedes Section 3"}
+			}
+			sec6Data := extractSectionData(data, offset, 6)
+			if sec6Data == nil {
+				return nil, &ParseError{
+					Section: 6,
+					Offset:  offset,
+					Message: "failed to extract section 6 data",
+				}
+			}
+			sec6, err := section.ParseSection6(sec6Data, cur.Section3.NumDataPoints)
+			if err != nil {
+				return nil, &ParseError{
+					Section:    6,
+					Offset:     offset,
+					Message:    "failed to parse Section 6",
+					Underlying: err,
+				}
+			}
+			switch sec6.BitmapIndicator {
+			case 0:
+				bitmap = sec6.Bitmap
+			case 254:
+				if bitmap == nil {
+					return nil, &ParseError{
+						Section: 6,
+						Offset:  offset,
+						Message: "bitmap indicator 254 without a previously defined bitmap",
+					}
+				}
+				sec6.Bitmap = bitmap
+			}
+			cur.Section6 = sec6
+			length = sec6.Length
+			have6 = true
+
+		case 7:
+			if cur.Section3 == nil || !have4 || !have5 || !have6 {
+				return nil, &ParseError{
+					Section: 7,
+					Offset:  offset,
+					Message: "Section 7 is not preceded by Sections 3, 4, 5, and 6",
+				}
+			}
+			sec7, err := parseSectionAt(data, offset, 7)
+			if err != nil {
+				return nil, err
+			}
+			field := cur
+			field.Section7 = sec7.(*section.Section7)
+			fields = append(fields, &field)
+			length = field.Section7.Length
+			have4, have5, have6 = false, false, false
+
+		default:
+			return nil, &ParseError{
+				Section: int(num),
+				Offset:  offset,
+				Message: fmt.Sprintf("unexpected section number %d", num),
+			}
+		}
+
+		if length == 0 {
+			return nil, &ParseError{Section: int(num), Offset: offset, Message: "zero-length section"}
+		}
+		offset += int(length)
 	}
 
-	// Parse Section 3 (Grid Definition)
-	sec3, err := parseSectionAt(data, offset, 3)
-	if err != nil {
-		return nil, err
-	}
-	msg.Section3 = sec3.(*section.Section3)
-	offset += int(sec3.(*section.Section3).Length)
-
-	// Parse Section 4 (Product Definition)
-	sec4, err := parseSectionAt(data, offset, 4)
-	if err != nil {
-		return nil, err
-	}
-	msg.Section4 = sec4.(*section.Section4)
-	offset += int(sec4.(*section.Section4).Length)
-
-	// Parse Section 5 (Data Representation)
-	sec5, err := parseSectionAt(data, offset, 5)
-	if err != nil {
-		return nil, err
-	}
-	msg.Section5 = sec5.(*section.Section5)
-	offset += int(sec5.(*section.Section5).Length)
-
-	// Parse Section 6 (Bitmap)
-	// Section 6 needs the number of grid points from Section 3
-	numGridPoints := msg.Section3.NumDataPoints
-	sec6Data := extractSectionData(data, offset, 6)
-	if sec6Data == nil {
+	if len(fields) == 0 {
 		return nil, &ParseError{
-			Section: 6,
+			Section: 7,
 			Offset:  offset,
-			Message: "failed to extract section 6 data",
+			Message: "message has no data section",
 		}
 	}
-	sec6, err := section.ParseSection6(sec6Data, numGridPoints)
-	if err != nil {
-		return nil, &ParseError{
-			Section:    6,
-			Offset:     offset,
-			Message:    "failed to parse Section 6",
-			Underlying: err,
-		}
-	}
-	msg.Section6 = sec6
-	offset += int(sec6.Length)
-
-	// Parse Section 7 (Data)
-	sec7, err := parseSectionAt(data, offset, 7)
-	if err != nil {
-		return nil, err
-	}
-	msg.Section7 = sec7.(*section.Section7)
-	// Note: offset is not used after this point, but we keep it for clarity
-	_ = offset
-
-	// The remaining 4 bytes should be the end marker "7777"
-	// (already validated by ValidateMessageStructure)
-
-	return msg, nil
+	return fields, nil
 }
 
 // extractSectionData reads a section's length and extracts its data.

@@ -28,7 +28,7 @@ type Section6 struct {
 // Bitmap Indicator values (Table 6.0):
 //
 //	0   = Bitmap applies and is specified in this section
-//	254 = Previously defined bitmap applies (not currently supported)
+//	254 = Previously defined bitmap applies
 //	255 = Bitmap does not apply - all grid points are valid
 //
 // When indicator = 0, the bitmap contains one bit per grid point:
@@ -39,10 +39,14 @@ type Section6 struct {
 // The numGridPoints parameter is required when indicator = 0 to determine
 // how many bits to read from the bitmap.
 //
+// When indicator = 254, the bitmap is the one most recently defined earlier
+// in the same message; the returned Section6 has a nil Bitmap, and it is up
+// to the caller to supply it.
+//
 // Returns an error if:
 //   - The section is too short
 //   - The section number is not 6
-//   - The bitmap indicator is not supported (currently only 0 and 255)
+//   - The bitmap indicator is not supported (0, 254, and 255 are)
 func ParseSection6(data []byte, numGridPoints uint32) (*Section6, error) {
 	if len(data) < 6 {
 		return nil, fmt.Errorf("section 6 must be at least 6 bytes, got %d", len(data))
@@ -80,8 +84,8 @@ func ParseSection6(data []byte, numGridPoints uint32) (*Section6, error) {
 		}
 
 	case 254:
-		// Previously defined bitmap applies
-		return nil, fmt.Errorf("bitmap indicator 254 (previously defined bitmap) not yet supported")
+		// Previously defined bitmap applies; the caller provides it.
+		bitmap = nil
 
 	case 255:
 		// Bitmap does not apply - all grid points are valid

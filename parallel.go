@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"runtime"
+	"slices"
 	"sync"
 
 	"github.com/mmp/squall/internal"
@@ -19,7 +20,9 @@ import (
 // in their original order, even though they may be parsed out of order.
 //
 // Returns a slice of parsed messages and an error if any message fails to parse.
-// On error, all parsing stops and the first error is returned.
+// On error, all parsing stops and the first error is returned. A GRIB2
+// message that holds several fields yields a Message for each (see
+// ParseMessageFields).
 func ParseMessages(data []byte) ([]*Message, error) {
 	return ParseMessagesWithContext(context.Background(), data, runtime.NumCPU())
 }
@@ -50,11 +53,7 @@ func ParseMessagesWithContext(ctx context.Context, data []byte, workers int) ([]
 
 	// Special case: single message - parse directly without pool overhead
 	if len(boundaries) == 1 {
-		msg, err := ParseMessage(data[boundaries[0].Start : boundaries[0].Start+int(boundaries[0].Length)])
-		if err != nil {
-			return nil, err
-		}
-		return []*Message{msg}, nil
+		return ParseMessageFields(data[boundaries[0].Start : boundaries[0].Start+int(boundaries[0].Length)])
 	}
 
 	// Phase 2: Parallel parsing
@@ -62,8 +61,8 @@ func ParseMessagesWithContext(ctx context.Context, data []byte, workers int) ([]
 		workers = runtime.NumCPU()
 	}
 
-	// Pre-allocate result slice
-	messages := make([]*Message, len(boundaries))
+	// Pre-allocate result slice; each message may hold several fields
+	messages := make([][]*Message, len(boundaries))
 
 	// Use mutex to protect messages slice (though indices don't overlap)
 	var mu sync.Mutex
@@ -88,7 +87,7 @@ func ParseMessagesWithContext(ctx context.Context, data []byte, workers int) ([]
 			msgData := data[boundary.Start : boundary.Start+int(boundary.Length)]
 
 			// Parse message
-			msg, err := ParseMessage(msgData)
+			msg, err := ParseMessageFields(msgData)
 			if err != nil {
 				return fmt.Errorf("failed to parse message %d at offset %d: %w",
 					boundary.Index, boundary.Start, err)
@@ -113,7 +112,7 @@ func ParseMessagesWithContext(ctx context.Context, data []byte, workers int) ([]
 		return nil, err
 	}
 
-	return messages, nil
+	return slices.Concat(messages...), nil
 }
 
 // ParseMessagesSequential parses messages one at a time without parallelism.
@@ -126,16 +125,16 @@ func ParseMessagesSequential(data []byte) ([]*Message, error) {
 		return nil, fmt.Errorf("failed to find message boundaries: %w", err)
 	}
 
-	messages := make([]*Message, len(boundaries))
+	messages := make([]*Message, 0, len(boundaries))
 
-	for i, boundary := range boundaries {
+	for _, boundary := range boundaries {
 		msgData := data[boundary.Start : boundary.Start+int(boundary.Length)]
-		msg, err := ParseMessage(msgData)
+		fields, err := ParseMessageFields(msgData)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse message %d at offset %d: %w",
 				boundary.Index, boundary.Start, err)
 		}
-		messages[i] = msg
+		messages = append(messages, fields...)
 	}
 
 	return messages, nil
@@ -155,12 +154,12 @@ func ParseMessagesSequentialSkipErrors(data []byte) ([]*Message, error) {
 
 	for _, boundary := range boundaries {
 		msgData := data[boundary.Start : boundary.Start+int(boundary.Length)]
-		msg, err := ParseMessage(msgData)
+		fields, err := ParseMessageFields(msgData)
 		if err != nil {
 			// Skip this message and continue
 			continue
 		}
-		messages = append(messages, msg)
+		messages = append(messages, fields...)
 	}
 
 	return messages, nil
@@ -178,7 +177,9 @@ func ParseMessagesSequentialSkipErrors(data []byte) ([]*Message, error) {
 // in their original order, even though they may be parsed out of order.
 //
 // Returns a slice of parsed messages and an error if any message fails to parse.
-// On error, all parsing stops and the first error is returned.
+// On error, all parsing stops and the first error is returned. A GRIB2
+// message that holds several fields yields a Message for each (see
+// ParseMessageFields).
 func ParseMessagesFromStream(r io.ReadSeeker) ([]*Message, error) {
 	return ParseMessagesFromStreamWithContext(context.Background(), r, runtime.NumCPU())
 }
@@ -213,11 +214,7 @@ func ParseMessagesFromStreamWithContext(ctx context.Context, r io.ReadSeeker, wo
 		if err != nil {
 			return nil, err
 		}
-		msg, err := ParseMessage(msgData)
-		if err != nil {
-			return nil, err
-		}
-		return []*Message{msg}, nil
+		return ParseMessageFields(msgData)
 	}
 
 	// Phase 2: Parallel parsing
@@ -225,8 +222,8 @@ func ParseMessagesFromStreamWithContext(ctx context.Context, r io.ReadSeeker, wo
 		workers = runtime.NumCPU()
 	}
 
-	// Pre-allocate result slice
-	messages := make([]*Message, len(boundaries))
+	// Pre-allocate result slice; each message may hold several fields
+	messages := make([][]*Message, len(boundaries))
 
 	// Use mutex to protect both the ReadSeeker and messages slice
 	var mu sync.Mutex
@@ -258,7 +255,7 @@ func ParseMessagesFromStreamWithContext(ctx context.Context, r io.ReadSeeker, wo
 			}
 
 			// Parse message (can be done in parallel without mutex)
-			msg, err := ParseMessage(msgData)
+			msg, err := ParseMessageFields(msgData)
 			if err != nil {
 				return fmt.Errorf("failed to parse message %d at offset %d: %w",
 					boundary.Index, boundary.Start, err)
@@ -283,7 +280,7 @@ func ParseMessagesFromStreamWithContext(ctx context.Context, r io.ReadSeeker, wo
 		return nil, err
 	}
 
-	return messages, nil
+	return slices.Concat(messages...), nil
 }
 
 // ParseMessagesFromStreamSequential parses messages from a stream one at a time without parallelism.
@@ -296,21 +293,21 @@ func ParseMessagesFromStreamSequential(r io.ReadSeeker) ([]*Message, error) {
 		return nil, fmt.Errorf("failed to find message boundaries: %w", err)
 	}
 
-	messages := make([]*Message, len(boundaries))
+	messages := make([]*Message, 0, len(boundaries))
 
-	for i, boundary := range boundaries {
+	for _, boundary := range boundaries {
 		msgData, err := readMessageAt(r, int64(boundary.Start), boundary.Length)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read message %d at offset %d: %w",
 				boundary.Index, boundary.Start, err)
 		}
 
-		msg, err := ParseMessage(msgData)
+		fields, err := ParseMessageFields(msgData)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse message %d at offset %d: %w",
 				boundary.Index, boundary.Start, err)
 		}
-		messages[i] = msg
+		messages = append(messages, fields...)
 	}
 
 	return messages, nil
@@ -335,12 +332,12 @@ func ParseMessagesFromStreamSequentialSkipErrors(r io.ReadSeeker) ([]*Message, e
 			continue
 		}
 
-		msg, err := ParseMessage(msgData)
+		fields, err := ParseMessageFields(msgData)
 		if err != nil {
 			// Skip this message and continue
 			continue
 		}
-		messages = append(messages, msg)
+		messages = append(messages, fields...)
 	}
 
 	return messages, nil
