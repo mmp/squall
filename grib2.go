@@ -435,27 +435,11 @@ func populateMetadata(g2 *GRIB2, msg *Message) *GRIB2 {
 		// Extract level information from product template
 		if template, ok := msg.Section4.Product.(*product.Template40); ok {
 			g2.Level = formatLevel(template)
-			g2.LevelValue = float32(template.FirstSurfaceValue) / float32(scaleFactorToMultiplier(template.FirstSurfaceScaleFactor))
+			g2.LevelValue = float32(template.FirstSurfaceValueScaled())
 		}
 	}
 
 	return g2
-}
-
-// scaleFactorToMultiplier converts a GRIB2 scale factor to a multiplier.
-// The scale factor is defined as: actual_value = scaled_value / 10^scale_factor
-func scaleFactorToMultiplier(scaleFactor uint8) float64 {
-	// Handle special case of 0
-	if scaleFactor == 0 {
-		return 1.0
-	}
-
-	// Calculate 10^scaleFactor
-	multiplier := 1.0
-	for i := uint8(0); i < scaleFactor; i++ {
-		multiplier *= 10.0
-	}
-	return multiplier
 }
 
 // formatLevel formats a level description in wgrib2-compatible format.
@@ -463,8 +447,8 @@ func formatLevel(template *product.Template40) string {
 	levelType := int(template.FirstSurfaceType)
 
 	// Apply scale factors to get actual values
-	value1 := float64(template.FirstSurfaceValue) / scaleFactorToMultiplier(template.FirstSurfaceScaleFactor)
-	value2 := float64(template.SecondSurfaceValue) / scaleFactorToMultiplier(template.SecondSurfaceScaleFactor)
+	value1 := template.FirstSurfaceValueScaled()
+	value2 := template.SecondSurfaceValueScaled()
 
 	// Special formatting for specific level types to match wgrib2
 	switch levelType {

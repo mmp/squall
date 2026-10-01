@@ -23,11 +23,11 @@ type Template40 struct {
 	TimeRangeUnit            uint8  // Indicator of unit of time range (Table 4.4)
 	ForecastTime             uint32 // Forecast time in units defined by TimeRangeUnit
 	FirstSurfaceType         uint8  // Type of first fixed surface (Table 4.5)
-	FirstSurfaceScaleFactor  uint8  // Scale factor of first fixed surface
-	FirstSurfaceValue        uint32 // Scaled value of first fixed surface
+	FirstSurfaceScaleFactor  uint8  // Scale factor of first fixed surface (sign-magnitude; see SurfaceValue)
+	FirstSurfaceValue        uint32 // Scaled value of first fixed surface (sign-magnitude)
 	SecondSurfaceType        uint8  // Type of second fixed surface (Table 4.5)
-	SecondSurfaceScaleFactor uint8  // Scale factor of second fixed surface
-	SecondSurfaceValue       uint32 // Scaled value of second fixed surface
+	SecondSurfaceScaleFactor uint8  // Scale factor of second fixed surface (sign-magnitude)
+	SecondSurfaceValue       uint32 // Scaled value of second fixed surface (sign-magnitude)
 }
 
 // ParseTemplate40 parses Product Definition Template 4.0.
@@ -96,27 +96,14 @@ func (t *Template40) String() string {
 		t.ParameterCategory, t.ParameterNumber, t.FirstSurfaceType)
 }
 
-// FirstSurfaceValueScaled returns the scaled value of the first fixed surface.
-// This applies the scale factor to get the actual value.
+// FirstSurfaceValueScaled returns the value of the first fixed surface,
+// with its scale factor applied, or 0 if it is missing.
 func (t *Template40) FirstSurfaceValueScaled() float64 {
-	if t.FirstSurfaceScaleFactor == 0 {
-		return float64(t.FirstSurfaceValue)
-	}
-	divisor := 1.0
-	for i := uint8(0); i < t.FirstSurfaceScaleFactor; i++ {
-		divisor *= 10.0
-	}
-	return float64(t.FirstSurfaceValue) / divisor
+	return SurfaceValue(t.FirstSurfaceScaleFactor, t.FirstSurfaceValue)
 }
 
-// SecondSurfaceValueScaled returns the scaled value of the second fixed surface.
+// SecondSurfaceValueScaled returns the value of the second fixed surface,
+// with its scale factor applied, or 0 if it is missing.
 func (t *Template40) SecondSurfaceValueScaled() float64 {
-	if t.SecondSurfaceScaleFactor == 0 {
-		return float64(t.SecondSurfaceValue)
-	}
-	divisor := 1.0
-	for i := uint8(0); i < t.SecondSurfaceScaleFactor; i++ {
-		divisor *= 10.0
-	}
-	return float64(t.SecondSurfaceValue) / divisor
+	return SurfaceValue(t.SecondSurfaceScaleFactor, t.SecondSurfaceValue)
 }
