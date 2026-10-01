@@ -389,3 +389,18 @@ func TestReadPreservesOrder(t *testing.T) {
 		}
 	}
 }
+
+func TestGRIB2MinMaxValueMissing(t *testing.T) {
+	g := &GRIB2{Data: []float32{missingValue, 3, -1, missingValue}}
+	if got := g.MinValue(); got != -1 {
+		t.Errorf("MinValue: got %v, want -1", got)
+	}
+	if got := g.MaxValue(); got != 3 {
+		t.Errorf("MaxValue: got %v, want 3", got)
+	}
+
+	g = &GRIB2{Data: []float32{missingValue, missingValue}}
+	if g.MinValue() != 0 || g.MaxValue() != 0 {
+		t.Errorf("all missing: got %v, %v, want 0, 0", g.MinValue(), g.MaxValue())
+	}
+}

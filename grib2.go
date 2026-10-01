@@ -531,42 +531,35 @@ func (g *GRIB2) String() string {
 		g.Parameter, g.Center, g.NumPoints, g.ReferenceTime.Format(time.RFC3339))
 }
 
-// MinValue returns the minimum data value in the field.
+// MinValue returns the minimum non-missing data value in the field, or 0
+// if there are none.
 func (g *GRIB2) MinValue() float32 {
-	if len(g.Data) == 0 {
-		return 0
-	}
-
-	minVal := g.Data[0]
-	for _, val := range g.Data {
-		// Skip missing values
-		if IsMissing(val) {
-			continue
-		}
-		if val < minVal {
-			minVal = val
-		}
-	}
+	minVal, _ := g.valueRange()
 	return minVal
 }
 
-// MaxValue returns the maximum data value in the field.
+// MaxValue returns the maximum non-missing data value in the field, or 0
+// if there are none.
 func (g *GRIB2) MaxValue() float32 {
-	if len(g.Data) == 0 {
-		return 0
-	}
+	_, maxVal := g.valueRange()
+	return maxVal
+}
 
-	maxVal := g.Data[0]
+// valueRange returns the minimum and maximum non-missing values.
+func (g *GRIB2) valueRange() (float32, float32) {
+	var minVal, maxVal float32
+	found := false
 	for _, val := range g.Data {
-		// Skip missing values
 		if IsMissing(val) {
 			continue
 		}
-		if val > maxVal {
-			maxVal = val
+		if !found {
+			minVal, maxVal, found = val, val, true
+		} else {
+			minVal, maxVal = min(minVal, val), max(maxVal, val)
 		}
 	}
-	return maxVal
+	return minVal, maxVal
 }
 
 // CountValid returns the number of valid (non-missing) data values.
