@@ -2,7 +2,6 @@ package data
 
 import (
 	"fmt"
-	"math"
 
 	"github.com/mmp/squall/internal"
 )
@@ -79,6 +78,8 @@ func (t *Template50) BitsPerValue() uint8 {
 //
 // If bitmap is nil, all values are assumed to be valid.
 func (t *Template50) Decode(packedData []byte, bitmap []bool) ([]float32, error) {
+	u := newUnpacker(t.ReferenceValue, t.BinaryScaleFactor, t.DecimalScaleFactor)
+
 	// Handle special case: 0 bits per value means all values are the reference value
 	if t.NumBitsPerValue == 0 {
 		count := t.NumberOfDataValues
@@ -87,7 +88,7 @@ func (t *Template50) Decode(packedData []byte, bitmap []bool) ([]float32, error)
 		}
 
 		values := make([]float32, count)
-		refValue := t.applyScaling(0)
+		refValue := u.value(0)
 
 		if bitmap != nil {
 			for i := range values {
@@ -121,23 +122,19 @@ func (t *Template50) Decode(packedData []byte, bitmap []bool) ([]float32, error)
 
 	// Apply scaling and bitmap
 	if bitmap != nil {
-		return t.decodeWithBitmap(packedValues, bitmap)
+		return decodeWithBitmap(u, packedValues, bitmap)
 	}
 
-	return t.decodeWithoutBitmap(packedValues), nil
-}
-
-// decodeWithoutBitmap decodes when all values are valid.
-func (t *Template50) decodeWithoutBitmap(packedValues []uint32) []float32 {
 	values := make([]float32, len(packedValues))
 	for i, packed := range packedValues {
-		values[i] = t.applyScaling(packed)
+		values[i] = u.value(float64(packed))
 	}
-	return values
+	return values, nil
 }
 
-// decodeWithBitmap decodes and applies bitmap.
-func (t *Template50) decodeWithBitmap(packedValues []uint32, bitmap []bool) ([]float32, error) {
+// decodeWithBitmap scales the packed values and distributes them to the
+// points present in the bitmap, setting the others to missingValue.
+func decodeWithBitmap[T uint32 | int32](u unpacker, packedValues []T, bitmap []bool) ([]float32, error) {
 	if len(packedValues) > len(bitmap) {
 		return nil, fmt.Errorf("more packed values (%d) than bitmap entries (%d)",
 			len(packedValues), len(bitmap))
@@ -151,7 +148,7 @@ func (t *Template50) decodeWithBitmap(packedValues []uint32, bitmap []bool) ([]f
 			if packedIdx >= len(packedValues) {
 				return nil, fmt.Errorf("bitmap indicates more valid points than packed values available")
 			}
-			values[i] = t.applyScaling(packedValues[packedIdx])
+			values[i] = u.value(float64(packedValues[packedIdx]))
 			packedIdx++
 		} else {
 			values[i] = missingValue
@@ -164,28 +161,6 @@ func (t *Template50) decodeWithBitmap(packedValues []uint32, bitmap []bool) ([]f
 	}
 
 	return values, nil
-}
-
-// applyScaling applies the scaling formula to a packed value.
-//
-// Formula: value = (R + X * 2^E) / 10^D
-func (t *Template50) applyScaling(packedValue uint32) float32 {
-	// Start with reference value
-	value := float32(t.ReferenceValue)
-
-	// Add scaled packed value: X * 2^E
-	if packedValue != 0 {
-		binaryScale := float32(math.Pow(2.0, float64(t.BinaryScaleFactor)))
-		value += float32(packedValue) * binaryScale
-	}
-
-	// Apply decimal scaling: / 10^D
-	if t.DecimalScaleFactor != 0 {
-		decimalScale := float32(math.Pow(10.0, float64(t.DecimalScaleFactor)))
-		value /= decimalScale
-	}
-
-	return value
 }
 
 // String returns a human-readable description.
