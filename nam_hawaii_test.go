@@ -47,16 +47,16 @@ func TestNAMHawaiiJPEG2000(t *testing.T) {
 		missing int
 		sha256  string
 	}{
-		{cice, "Hybrid 1", 0, "897095e7f80f881b862cbf454bd32246f3fb0f168e021c785334d29e2e84d74a"},
+		{cice, "1 hybrid level", 0, "897095e7f80f881b862cbf454bd32246f3fb0f168e021c785334d29e2e84d74a"},
 		{hgt, "500 mb", 0, "646b7c6e6a662dc71c4e3a732ce4f0878c7ebf13fd7ff89647c903901e86f2b6"},
 		{tmp, "500 mb", 0, "23253954921a04ab1fc794b6f2eb6aaec8e322c18873c4f54d3ccfb406c8b8d9"},
 		{dpt, "500 mb", 0, "650f87b290098c7110d7b2fe886b71cfc9d827c031ad73f904dadc4a731cd822"},
 		{ugrd, "500 mb", 0, "ee6e7768ccab077797bdc429e52eedfe1298832e462c62fce8e1a2a4455c5516"},
 		{vgrd, "500 mb", 0, "79a725fae06c8be58f81083406ced261039e1954f060d9318db3cf87ecbf3470"},
 		{hindex, "surface", 69548, "c8f64d2ffffa48d8d4e0c4fc1978199bf0e4d9b8c6a65f3d2c9c86bdd37a1043"},
-		{tmp, "Altitude MSL 305", 1795, "1a4c5899944be146684d885dbaaae2024c4a690d3d1748af75cecbcac996307c"},
-		{ugrd, "Altitude MSL 305", 1795, "f408273445b8812b63ae25aa3fe4950df85a366efb0ddf48cc6814edfd143798"},
-		{vgrd, "Altitude MSL 305", 1795, "66b5d879e8e202bf3a3d0d194ef7a4c29a4cdb0aeb95c5656aec1205434b35ec"},
+		{tmp, "305 m above mean sea level", 1795, "1a4c5899944be146684d885dbaaae2024c4a690d3d1748af75cecbcac996307c"},
+		{ugrd, "305 m above mean sea level", 1795, "f408273445b8812b63ae25aa3fe4950df85a366efb0ddf48cc6814edfd143798"},
+		{vgrd, "305 m above mean sea level", 1795, "66b5d879e8e202bf3a3d0d194ef7a4c29a4cdb0aeb95c5656aec1205434b35ec"},
 	}
 	if len(fields) != len(expected) {
 		t.Errorf("got %d fields, want %d", len(fields), len(expected))

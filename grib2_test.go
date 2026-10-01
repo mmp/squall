@@ -416,7 +416,7 @@ func TestFormatLevelTemplate48(t *testing.T) {
 		{&product.Template48{FirstSurfaceType: 103, FirstSurfaceValue: 2, SecondSurfaceType: 255}, "2 m above ground"},
 		{&product.Template48{FirstSurfaceType: 100, FirstSurfaceValue: 50000, SecondSurfaceType: 255}, "500 mb"},
 	} {
-		if got := formatLevel(tc.tmpl); got != tc.want {
+		if got := formatLevel(tc.tmpl, 7); got != tc.want {
 			t.Errorf("got level %q, want %q", got, tc.want)
 		}
 	}

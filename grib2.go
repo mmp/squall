@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/mmp/squall/grid"
+	"github.com/mmp/squall/product"
 	"github.com/mmp/squall/tables"
 )
 
@@ -436,7 +437,11 @@ func populateMetadata(g2 *GRIB2, msg *Message) *GRIB2 {
 
 		// Extract level information from product template
 		if surfaces, ok := msg.Section4.Product.(fixedSurfaces); ok {
-			g2.Level = formatLevel(surfaces)
+			center := 0
+			if msg.Section1 != nil {
+				center = int(msg.Section1.OriginatingCenter)
+			}
+			g2.Level = formatLevel(surfaces, center)
 			g2.LevelValue = float32(surfaces.FirstSurfaceValueScaled())
 		}
 	}
@@ -447,93 +452,15 @@ func populateMetadata(g2 *GRIB2, msg *Message) *GRIB2 {
 // fixedSurfaces is implemented by the product templates that describe
 // their level with a pair of fixed surfaces (templates 4.0 and 4.8).
 type fixedSurfaces interface {
-	FixedSurfaceTypes() (first, second uint8)
+	FixedSurfaces() (first, second product.FixedSurface)
 	FirstSurfaceValueScaled() float64
-	SecondSurfaceValueScaled() float64
 }
 
-// formatLevel formats a level description in wgrib2-compatible format.
-func formatLevel(template fixedSurfaces) string {
-	firstType, secondType := template.FixedSurfaceTypes()
-	levelType := int(firstType)
-
-	// Apply scale factors to get actual values
-	value1 := template.FirstSurfaceValueScaled()
-	value2 := template.SecondSurfaceValueScaled()
-
-	// Special formatting for specific level types to match wgrib2
-	switch levelType {
-	case 1: // Surface
-		return "surface"
-	case 2: // Cloud base
-		return "cloud base"
-	case 3: // Cloud top
-		return "cloud top"
-	case 8: // Nominal top of atmosphere
-		return "top of atmosphere"
-	case 10: // Entire atmosphere (single layer)
-		return "entire atmosphere"
-	case 20: // Isothermal level
-		if secondType == 20 && value2 > 0 {
-			// Range between two isothermal levels
-			return fmt.Sprintf("%.0f K level - %.0f K level", value1, value2)
-		}
-		return fmt.Sprintf("%.0f K level", value1)
-	case 100: // Isobaric surface
-		// Convert Pa to mb
-		valueMb := value1 / 100.0
-		valueMb2 := value2 / 100.0
-		if secondType == 100 && valueMb2 > 0 {
-			// Range (layer between two isobaric surfaces)
-			return fmt.Sprintf("%.0f-%.0f mb above ground", valueMb, valueMb2)
-		}
-		// Format with appropriate precision (show decimal if needed)
-		if valueMb == float64(int(valueMb)) {
-			return fmt.Sprintf("%.0f mb", valueMb)
-		}
-		return fmt.Sprintf("%.1f mb", valueMb)
-	case 101: // Mean sea level
-		return "mean sea level"
-	case 103: // Height above ground
-		if secondType == 103 && value2 > 0 {
-			// Range (layer)
-			return fmt.Sprintf("%.0f-%.0f m above ground", value1, value2)
-		}
-		if value1 == 0 {
-			return "surface"
-		}
-		return fmt.Sprintf("%.0f m above ground", value1)
-	case 104: // Sigma level
-		if secondType == 104 && value2 > 0 {
-			// Range (sigma layer)
-			return fmt.Sprintf("%.1f-%.1f sigma layer", value1, value2)
-		}
-		return fmt.Sprintf("%.1f sigma level", value1)
-	case 106: // Depth below land surface
-		if secondType == 106 && value2 > 0 {
-			// Range (layer)
-			if value1 == 0 {
-				return fmt.Sprintf("%.2g m underground", value2)
-			}
-			return fmt.Sprintf("%.2g-%.2g m below ground", value1, value2)
-		}
-		if value1 == 0 {
-			return "0 m underground"
-		}
-		return fmt.Sprintf("%.2g m below ground", value1)
-	case 200: // Entire atmosphere (single layer)
-		return "entire atmosphere (considered as a single layer)"
-	}
-
-	// Default: use table name
-	levelName := tables.GetLevelName(levelType)
-
-	// Add value if non-zero
-	if value1 != 0 {
-		return fmt.Sprintf("%s %g", levelName, value1)
-	}
-
-	return levelName
+// formatLevel formats a level description as wgrib2 does; center is the
+// originating center.
+func formatLevel(template fixedSurfaces, center int) string {
+	s1, s2 := template.FixedSurfaces()
+	return tables.FormatLevel(s1.Type, s1.Value, s1.Missing, s2.Type, s2.Value, s2.Missing, center)
 }
 
 // String returns a human-readable summary of the field.
