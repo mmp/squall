@@ -110,6 +110,28 @@ func (t *Template50) Decode(packedData []byte, bitmap []bool) ([]float32, error)
 	return values, nil
 }
 
+// expandBitmap distributes values to the points present in the bitmap,
+// setting the others to missingValue.
+func expandBitmap(values []float32, bitmap []bool) ([]float32, error) {
+	out := make([]float32, len(bitmap))
+	n := 0
+	for i, present := range bitmap {
+		if !present {
+			out[i] = missingValue
+			continue
+		}
+		if n >= len(values) {
+			return nil, fmt.Errorf("bitmap indicates more valid points than packed values available")
+		}
+		out[i] = values[n]
+		n++
+	}
+	if n != len(values) {
+		return nil, fmt.Errorf("bitmap mismatch: used %d packed values, have %d", n, len(values))
+	}
+	return out, nil
+}
+
 // constantField returns a field where every point has value v, or, if bitmap
 // is non-nil, where the points it marks as present do and the others are
 // missing.

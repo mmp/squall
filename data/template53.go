@@ -2,6 +2,7 @@ package data
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/mmp/squall/internal"
 )
@@ -185,12 +186,16 @@ func (t *Template53) Decode(packedData []byte, bitmap []bool) ([]float32, error)
 
 	// Apply scaling and convert to float32
 	u := newUnpacker(t.ReferenceValue, t.BinaryScaleFactor, t.DecimalScaleFactor)
-	if bitmap != nil {
-		return decodeWithBitmap(u, finalVals, bitmap)
-	}
 	values := make([]float32, len(finalVals))
 	for i, v := range finalVals {
-		values[i] = u.value(float64(v))
+		if v == missingPacked {
+			values[i] = missingValue
+		} else {
+			values[i] = u.value(float64(v))
+		}
+	}
+	if bitmap != nil {
+		return expandBitmap(values, bitmap)
 	}
 	return values, nil
 }
@@ -328,15 +333,40 @@ func (t *Template53) readGroupLengths(bitReader *internal.BitReader, groupLength
 	return nil
 }
 
-// unpackGroupData unpacks data values from all groups
+// missingPacked marks missing values among the unpacked integers, as in
+// wgrib2.
+const missingPacked = math.MaxInt32
+
+// unpackGroupData unpacks data values from all groups.
+//
+// With missing value management (Table 5.5), values with all bits set in
+// their group's width are missing, and if management is 2, so are values
+// one less than that (the secondary missing value). For groups of width 0,
+// the group reference value indicates whether the entire group is missing.
+// Missing values are returned as missingPacked.
 func (t *Template53) unpackGroupData(bitReader *internal.BitReader, ndata uint32, metadata *groupMetadata) ([]int32, error) {
 	unpackedVals := make([]int32, ndata)
 	idx := 0
+
+	mvm := t.MissingValueManagement
+	if mvm > 2 {
+		return nil, fmt.Errorf("unsupported missing value management %d", mvm)
+	}
+	// isMissing reports whether a value is a missing value code for a
+	// field of the given number of bits.
+	isMissing := func(v int64, bits uint8) bool {
+		if mvm == 0 || bits >= 63 {
+			return false
+		}
+		primary := int64(1)<<bits - 1
+		return v == primary || (mvm == 2 && v == primary-1)
+	}
 
 	for i := uint32(0); i < t.NumberOfGroups; i++ {
 		groupWidth := metadata.widths[i]
 		groupLength := metadata.lengths[i]
 		groupMin := metadata.minVals[i]
+		groupMissing := groupWidth == 0 && isMissing(int64(groupMin), t.NumBitsPerValue)
 
 		for j := uint32(0); j < groupLength; j++ {
 			if idx >= int(ndata) {
@@ -346,12 +376,19 @@ func (t *Template53) unpackGroupData(bitReader *internal.BitReader, ndata uint32
 			if groupWidth == 0 {
 				// All values in group are the minimum
 				unpackedVals[idx] = groupMin
+				if groupMissing {
+					unpackedVals[idx] = missingPacked
+				}
 			} else {
 				val, err := bitReader.ReadBits(int(groupWidth))
 				if err != nil {
 					return nil, fmt.Errorf("failed to read value in group %d: %w", i, err)
 				}
-				unpackedVals[idx] = groupMin + int32(val)
+				if isMissing(int64(val), groupWidth) {
+					unpackedVals[idx] = missingPacked
+				} else {
+					unpackedVals[idx] = groupMin + int32(val)
+				}
 			}
 			idx++
 		}
@@ -360,81 +397,37 @@ func (t *Template53) unpackGroupData(bitReader *internal.BitReader, ndata uint32
 	return unpackedVals, nil
 }
 
-// applySpatialDifferencing applies the appropriate spatial differencing reversal
-func (t *Template53) applySpatialDifferencing(unpackedVals []int32, firstVals []int32, minVal int32) []int32 {
-	switch t.SpatialDiffOrder {
-	case 1:
-		return t.reverseSpatialDifferencing1(unpackedVals, firstVals, minVal)
-	case 2:
-		return t.reverseSpatialDifferencing2(unpackedVals, firstVals, minVal)
-	default:
-		return unpackedVals
-	}
-}
-
-// reverseSpatialDifferencing1 reverses first-order spatial differencing.
-//
-// First-order differencing: Y[n] = X[n] - X[n-1]
-// Reversal: X[n] = X[n-1] + Y[n] + min_val
-//
-// Per GRIB2 spec and wgrib2 reference implementation:
-// - The first n values in the packed data are set to zero (placeholders)
-// - These are replaced in-place with the firstVals (extra descriptors)
-// - The differencing formula is applied starting from index n
-func (t *Template53) reverseSpatialDifferencing1(diffVals []int32, firstVals []int32, minVal int32) []int32 {
-	if len(diffVals) == 0 {
-		return diffVals
+// applySpatialDifferencing applies the appropriate spatial differencing
+// reversal. Missing values are skipped: the first non-missing values get
+// the initial values from the extra descriptors, and each value is
+// reconstructed from the preceding non-missing ones.
+func (t *Template53) applySpatialDifferencing(vals []int32, firstVals []int32, minVal int32) []int32 {
+	order := int(t.SpatialDiffOrder)
+	if order != 1 && order != 2 {
+		return vals
 	}
 
-	vals := make([]int32, len(diffVals))
-
-	// Replace first value with extra descriptor (reference value)
-	vals[0] = firstVals[0]
-
-	// Apply first-order differencing reversal starting from index 1
-	last := vals[0]
-
-	for i := 1; i < len(diffVals); i++ {
-		vals[i] = diffVals[i] + last + minVal
-		last = vals[i]
+	// The most recent two reconstructed values.
+	var last, penultimate int32
+	n := 0 // number of non-missing values seen
+	for i, v := range vals {
+		if v == missingPacked {
+			continue
+		}
+		switch {
+		case n < order:
+			// First-order differencing: Y[n] = X[n] - X[n-1].
+			// Second-order: Z[n] = X[n] - 2*X[n-1] + X[n-2].
+			v = firstVals[n]
+		case order == 1:
+			v += last + minVal
+		default:
+			v += minVal + last + last - penultimate
+		}
+		vals[i] = v
+		penultimate, last = last, v
+		n++
 	}
-
-	return vals
-}
-
-// reverseSpatialDifferencing2 reverses second-order spatial differencing.
-//
-// Second-order differencing: Z[n] = (X[n] - X[n-1]) - (X[n-1] - X[n-2])
-//
-//	= X[n] - 2*X[n-1] + X[n-2]
-//
-// Reversal: X[n] = Z[n] + 2*X[n-1] - X[n-2] + min_val
-//
-// Per GRIB2 spec and wgrib2 reference implementation:
-// - The first n values in the packed data are set to zero (placeholders)
-// - These are replaced in-place with the firstVals (extra descriptors)
-// - The differencing formula is applied starting from index n
-func (t *Template53) reverseSpatialDifferencing2(diffVals []int32, firstVals []int32, minVal int32) []int32 {
-	if len(diffVals) < 2 {
-		return diffVals
-	}
-
-	vals := make([]int32, len(diffVals))
-
-	// Replace first two values with extra descriptors (reference values)
-	vals[0] = firstVals[0]
-	vals[1] = firstVals[1]
-
-	// Apply second-order differencing reversal starting from index 2
-	penultimate := vals[0]
-	last := vals[1]
-
-	for i := 2; i < len(diffVals); i++ {
-		vals[i] = diffVals[i] + minVal + last + last - penultimate
-		penultimate = last
-		last = vals[i]
-	}
-
 	return vals
 }
 
