@@ -96,6 +96,12 @@ func (t *Template40) String() string {
 		t.ParameterCategory, t.ParameterNumber, t.FirstSurfaceType)
 }
 
+// FixedSurfaceTypes returns the types of the first and second fixed
+// surfaces (Code Table 4.5).
+func (t *Template40) FixedSurfaceTypes() (first, second uint8) {
+	return t.FirstSurfaceType, t.SecondSurfaceType
+}
+
 // FirstSurfaceValueScaled returns the value of the first fixed surface,
 // with its scale factor applied, or 0 if it is missing.
 func (t *Template40) FirstSurfaceValueScaled() float64 {

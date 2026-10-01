@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/mmp/squall/product"
 )
 
 func TestRead(t *testing.T) {
@@ -402,5 +404,20 @@ func TestGRIB2MinMaxValueMissing(t *testing.T) {
 	g = &GRIB2{Data: []float32{missingValue, missingValue}}
 	if g.MinValue() != 0 || g.MaxValue() != 0 {
 		t.Errorf("all missing: got %v, %v, want 0, 0", g.MinValue(), g.MaxValue())
+	}
+}
+
+func TestFormatLevelTemplate48(t *testing.T) {
+	for _, tc := range []struct {
+		tmpl *product.Template48
+		want string
+	}{
+		{&product.Template48{FirstSurfaceType: 1, SecondSurfaceType: 255}, "surface"},
+		{&product.Template48{FirstSurfaceType: 103, FirstSurfaceValue: 2, SecondSurfaceType: 255}, "2 m above ground"},
+		{&product.Template48{FirstSurfaceType: 100, FirstSurfaceValue: 50000, SecondSurfaceType: 255}, "500 mb"},
+	} {
+		if got := formatLevel(tc.tmpl); got != tc.want {
+			t.Errorf("got level %q, want %q", got, tc.want)
+		}
 	}
 }

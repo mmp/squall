@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/mmp/squall/grid"
-	"github.com/mmp/squall/product"
 	"github.com/mmp/squall/tables"
 )
 
@@ -436,18 +435,27 @@ func populateMetadata(g2 *GRIB2, msg *Message) *GRIB2 {
 		}
 
 		// Extract level information from product template
-		if template, ok := msg.Section4.Product.(*product.Template40); ok {
-			g2.Level = formatLevel(template)
-			g2.LevelValue = float32(template.FirstSurfaceValueScaled())
+		if surfaces, ok := msg.Section4.Product.(fixedSurfaces); ok {
+			g2.Level = formatLevel(surfaces)
+			g2.LevelValue = float32(surfaces.FirstSurfaceValueScaled())
 		}
 	}
 
 	return g2
 }
 
+// fixedSurfaces is implemented by the product templates that describe
+// their level with a pair of fixed surfaces (templates 4.0 and 4.8).
+type fixedSurfaces interface {
+	FixedSurfaceTypes() (first, second uint8)
+	FirstSurfaceValueScaled() float64
+	SecondSurfaceValueScaled() float64
+}
+
 // formatLevel formats a level description in wgrib2-compatible format.
-func formatLevel(template *product.Template40) string {
-	levelType := int(template.FirstSurfaceType)
+func formatLevel(template fixedSurfaces) string {
+	firstType, secondType := template.FixedSurfaceTypes()
+	levelType := int(firstType)
 
 	// Apply scale factors to get actual values
 	value1 := template.FirstSurfaceValueScaled()
@@ -466,7 +474,7 @@ func formatLevel(template *product.Template40) string {
 	case 10: // Entire atmosphere (single layer)
 		return "entire atmosphere"
 	case 20: // Isothermal level
-		if template.SecondSurfaceType == 20 && value2 > 0 {
+		if secondType == 20 && value2 > 0 {
 			// Range between two isothermal levels
 			return fmt.Sprintf("%.0f K level - %.0f K level", value1, value2)
 		}
@@ -475,7 +483,7 @@ func formatLevel(template *product.Template40) string {
 		// Convert Pa to mb
 		valueMb := value1 / 100.0
 		valueMb2 := value2 / 100.0
-		if template.SecondSurfaceType == 100 && valueMb2 > 0 {
+		if secondType == 100 && valueMb2 > 0 {
 			// Range (layer between two isobaric surfaces)
 			return fmt.Sprintf("%.0f-%.0f mb above ground", valueMb, valueMb2)
 		}
@@ -487,7 +495,7 @@ func formatLevel(template *product.Template40) string {
 	case 101: // Mean sea level
 		return "mean sea level"
 	case 103: // Height above ground
-		if template.SecondSurfaceType == 103 && value2 > 0 {
+		if secondType == 103 && value2 > 0 {
 			// Range (layer)
 			return fmt.Sprintf("%.0f-%.0f m above ground", value1, value2)
 		}
@@ -496,13 +504,13 @@ func formatLevel(template *product.Template40) string {
 		}
 		return fmt.Sprintf("%.0f m above ground", value1)
 	case 104: // Sigma level
-		if template.SecondSurfaceType == 104 && value2 > 0 {
+		if secondType == 104 && value2 > 0 {
 			// Range (sigma layer)
 			return fmt.Sprintf("%.1f-%.1f sigma layer", value1, value2)
 		}
 		return fmt.Sprintf("%.1f sigma level", value1)
 	case 106: // Depth below land surface
-		if template.SecondSurfaceType == 106 && value2 > 0 {
+		if secondType == 106 && value2 > 0 {
 			// Range (layer)
 			if value1 == 0 {
 				return fmt.Sprintf("%.2g m underground", value2)
