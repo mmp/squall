@@ -3,6 +3,7 @@ package squall
 import (
 	"bytes"
 	"context"
+	"os"
 	"testing"
 	"time"
 )
@@ -340,6 +341,51 @@ func BenchmarkReadSequential(b *testing.B) {
 		_, err := ReadWithOptions(bytes.NewReader(data), WithSequential())
 		if err != nil {
 			b.Fatal(err)
+		}
+	}
+}
+
+// TestReadPreservesOrder checks that fields come back in file order when
+// the file has messages on different grids.
+func TestReadPreservesOrder(t *testing.T) {
+	split := func(path string, n int) [][]byte {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		boundaries, err := FindMessages(data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var msgs [][]byte
+		for _, b := range boundaries[:n] {
+			msgs = append(msgs, data[b.Start:b.Start+int(b.Length)])
+		}
+		return msgs
+	}
+	// Single-field messages on the NAM Hawaii and HRRR Iowa grids.
+	nam := split("testdata/nam-hawaii-subset.grib2", 4)
+	hrrr := split("testdata/hrrr-iowa-subset.grib2", 4)
+	var mixed []byte
+	for i := range nam {
+		mixed = append(mixed, nam[i]...)
+		mixed = append(mixed, hrrr[i]...)
+	}
+
+	fields, err := Read(bytes.NewReader(mixed))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(fields) != 8 {
+		t.Fatalf("got %d fields, want 8", len(fields))
+	}
+	for i, f := range fields {
+		wantNi := 321 // NAM Hawaii
+		if i%2 == 1 {
+			wantNi = fields[1].GridNi
+		}
+		if f.GridNi != wantNi || fields[1].GridNi == 321 {
+			t.Errorf("field %d: grid width %d; fields are out of order", i, f.GridNi)
 		}
 	}
 }

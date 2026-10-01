@@ -78,6 +78,8 @@ type GRIB2 struct {
 // read into memory as needed, but the entire file is not loaded at once.
 // Use ReadWithOptions to control parallelism or apply filters.
 //
+// The fields are returned in the order they appear in the input.
+//
 // Example:
 //
 //	file, _ := os.Open("forecast.grib2")
@@ -202,13 +204,13 @@ func ReadWithOptions(r io.ReadSeeker, opts ...ReadOption) ([]*GRIB2, error) {
 	}
 
 	// Phase 1: Identify unique grids
-	gridToMessages, uniqueGrids := identifyUniqueGrids(messages, config)
+	selected, uniqueGrids := identifyUniqueGrids(messages, config)
 
 	// Phase 2: Compute coordinates for unique grids in parallel
 	coordCache := computeCoordinatesForGrids(uniqueGrids)
 
 	// Phase 3: Convert messages to GRIB2 structs using cached coordinates
-	fields, err := convertMessagesToGRIB2(gridToMessages, coordCache, config)
+	fields, err := convertMessagesToGRIB2(selected, coordCache, config)
 	if err != nil && !config.skipErrors {
 		return nil, err
 	}
@@ -232,9 +234,16 @@ func parseMessages(r io.ReadSeeker, config readConfig) ([]*Message, error) {
 	return ParseMessagesFromStreamWithWorkers(r, config.workers)
 }
 
-// identifyUniqueGrids groups messages by grid and identifies unique grids
-func identifyUniqueGrids(messages []*Message, config readConfig) (map[gridKey][]*Message, map[gridKey]*Message) {
-	gridToMessages := make(map[gridKey][]*Message)
+// gridMessage is a message along with the key for its grid.
+type gridMessage struct {
+	msg *Message
+	key gridKey
+}
+
+// identifyUniqueGrids returns the messages that pass the filter, in their
+// original order, along with an example message for each unique grid.
+func identifyUniqueGrids(messages []*Message, config readConfig) ([]gridMessage, map[gridKey]*Message) {
+	var selected []gridMessage
 	uniqueGrids := make(map[gridKey]*Message)
 
 	for _, msg := range messages {
@@ -248,13 +257,13 @@ func identifyUniqueGrids(messages []*Message, config readConfig) (map[gridKey][]
 			continue
 		}
 
-		gridToMessages[key] = append(gridToMessages[key], msg)
+		selected = append(selected, gridMessage{msg: msg, key: key})
 		if _, exists := uniqueGrids[key]; !exists {
 			uniqueGrids[key] = msg
 		}
 	}
 
-	return gridToMessages, uniqueGrids
+	return selected, uniqueGrids
 }
 
 // computeCoordinatesForGrids computes coordinates for each unique grid in parallel
@@ -287,20 +296,16 @@ func computeCoordinatesForGrids(uniqueGrids map[gridKey]*Message) map[gridKey]*c
 	return coordCache
 }
 
-// convertMessagesToGRIB2 converts messages to GRIB2 structs using cached coordinates
-func convertMessagesToGRIB2(gridToMessages map[gridKey][]*Message, coordCache map[gridKey]*coordinateCache, config readConfig) ([]*GRIB2, error) {
+// convertMessagesToGRIB2 converts messages to GRIB2 structs using cached
+// coordinates, returning them in the same order as the messages.
+func convertMessagesToGRIB2(messages []gridMessage, coordCache map[gridKey]*coordinateCache, config readConfig) ([]*GRIB2, error) {
 	type result struct {
 		field *GRIB2
 		err   error
 		index int
 	}
 
-	// Count total messages to process
-	totalMessages := 0
-	for _, msgs := range gridToMessages {
-		totalMessages += len(msgs)
-	}
-
+	totalMessages := len(messages)
 	resultChan := make(chan result, totalMessages)
 	var decodeWg sync.WaitGroup
 
@@ -309,30 +314,24 @@ func convertMessagesToGRIB2(gridToMessages map[gridKey][]*Message, coordCache ma
 	semaphore := make(chan struct{}, maxWorkers)
 
 	// Process all messages with bounded parallelism
-	messageIndex := 0
-	for key, msgs := range gridToMessages {
-		cache, ok := coordCache[key]
+	for idx, gm := range messages {
+		cache, ok := coordCache[gm.key]
 		if !ok {
-			// Coordinates failed for this grid, skip these messages
-			messageIndex += len(msgs)
+			// Coordinates failed for this grid, skip this message
 			continue
 		}
 
-		for _, msg := range msgs {
-			decodeWg.Add(1)
-			idx := messageIndex
-			messageIndex++
+		decodeWg.Add(1)
 
-			// Acquire semaphore slot (blocks if maxWorkers goroutines are active)
-			semaphore <- struct{}{}
+		// Acquire semaphore slot (blocks if maxWorkers goroutines are active)
+		semaphore <- struct{}{}
 
-			go func(m *Message, lats, lons []float32, i int) {
-				defer decodeWg.Done()
-				defer func() { <-semaphore }() // Release semaphore slot
-				field, err := messageToGRIB2WithCoords(m, lats, lons)
-				resultChan <- result{field: field, err: err, index: i}
-			}(msg, cache.latitudes, cache.longitudes, idx)
-		}
+		go func(m *Message, lats, lons []float32, i int) {
+			defer decodeWg.Done()
+			defer func() { <-semaphore }() // Release semaphore slot
+			field, err := messageToGRIB2WithCoords(m, lats, lons)
+			resultChan <- result{field: field, err: err, index: i}
+		}(gm.msg, cache.latitudes, cache.longitudes, idx)
 	}
 
 	// Wait for all decoding to complete
