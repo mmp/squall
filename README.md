@@ -155,6 +155,7 @@ Note that **squall**'s support for GRIB files is not complete, though it suffice
 ### Data Packing
 - Simple packing (Template 5.0)
 - Complex packing with spatial differencing (Template 5.3)
+- JPEG 2000 (Template 5.40), with a pure Go decoder
 
 ### Validation
 

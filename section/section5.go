@@ -30,6 +30,8 @@ type Section5 struct {
 //
 // Currently supported templates:
 //   - 0: Simple packing (most common, ~80% of files)
+//   - 3: Complex packing with spatial differencing
+//   - 40: JPEG 2000 code stream
 //
 // Returns an error if:
 //   - The section is too short
@@ -80,6 +82,13 @@ func ParseSection5(sectionData []byte) (*Section5, error) {
 		parsedRepresentation, err = data.ParseTemplate53(numDataValues, templateData)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse data representation template 5.3: %w", err)
+		}
+
+	case 40:
+		// Template 5.40: JPEG 2000 code stream
+		parsedRepresentation, err = data.ParseTemplate540(numDataValues, templateData)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse data representation template 5.40: %w", err)
 		}
 
 	default:

@@ -82,29 +82,7 @@ func (t *Template50) Decode(packedData []byte, bitmap []bool) ([]float32, error)
 
 	// Handle special case: 0 bits per value means all values are the reference value
 	if t.NumBitsPerValue == 0 {
-		count := t.NumberOfDataValues
-		if bitmap != nil {
-			count = uint32(len(bitmap))
-		}
-
-		values := make([]float32, count)
-		refValue := u.value(0)
-
-		if bitmap != nil {
-			for i := range values {
-				if bitmap[i] {
-					values[i] = refValue
-				} else {
-					values[i] = missingValue
-				}
-			}
-		} else {
-			for i := range values {
-				values[i] = refValue
-			}
-		}
-
-		return values, nil
+		return constantField(u.value(0), t.NumberOfDataValues, bitmap), nil
 	}
 
 	// Create bit reader for packed data
@@ -130,6 +108,28 @@ func (t *Template50) Decode(packedData []byte, bitmap []bool) ([]float32, error)
 		values[i] = u.value(float64(packed))
 	}
 	return values, nil
+}
+
+// constantField returns a field where every point has value v, or, if bitmap
+// is non-nil, where the points it marks as present do and the others are
+// missing.
+func constantField(v float32, n uint32, bitmap []bool) []float32 {
+	if bitmap != nil {
+		values := make([]float32, len(bitmap))
+		for i, present := range bitmap {
+			if present {
+				values[i] = v
+			} else {
+				values[i] = missingValue
+			}
+		}
+		return values
+	}
+	values := make([]float32, n)
+	for i := range values {
+		values[i] = v
+	}
+	return values
 }
 
 // decodeWithBitmap scales the packed values and distributes them to the
