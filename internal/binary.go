@@ -76,9 +76,17 @@ func (r *Reader) Uint32() (uint32, error) {
 }
 
 // Int32 reads a signed 32-bit big-endian integer.
+// Like Int16, it uses GRIB2's sign-magnitude representation, not two's
+// complement: bit 31 is the sign and bits 0-30 are the magnitude.
 func (r *Reader) Int32() (int32, error) {
 	val, err := r.Uint32()
-	return int32(val), err
+	if err != nil {
+		return 0, err
+	}
+	if val&0x80000000 != 0 {
+		return -int32(val & 0x7FFFFFFF), nil
+	}
+	return int32(val), nil
 }
 
 // Uint64 reads an unsigned 64-bit big-endian integer.

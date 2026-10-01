@@ -161,13 +161,15 @@ func TestReaderUint32(t *testing.T) {
 }
 
 func TestReaderInt32(t *testing.T) {
+	// GRIB2 uses sign-magnitude representation, like Int16.
 	data := []byte{
 		0x00, 0x00, 0x00, 0x00, // 0
 		0x7F, 0xFF, 0xFF, 0xFF, // max positive
-		0x80, 0x00, 0x00, 0x00, // min negative
-		0xFF, 0xFF, 0xFF, 0xFF, // -1
+		0x80, 0x00, 0x00, 0x05, // -5
+		0x85, 0x5D, 0x4A, 0x80, // -90000000 (-90 degrees in microdegrees)
+		0xFF, 0xFF, 0xFF, 0xFF, // max negative
 	}
-	want := []int32{0, 2147483647, -2147483648, -1}
+	want := []int32{0, 2147483647, -5, -90000000, -2147483647}
 
 	r := NewReader(data)
 	for i, w := range want {

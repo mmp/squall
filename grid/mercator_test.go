@@ -107,6 +107,21 @@ func TestParseMercatorGrid(t *testing.T) {
 	}
 }
 
+func TestParseMercatorGridSouthernHemisphere(t *testing.T) {
+	// Signed values are sign-magnitude: -30 degrees in microdegrees.
+	data := make([]byte, 58)
+	data[24], data[25], data[26], data[27] = 0x81, 0xC9, 0xC3, 0x80 // La1 = -30000000
+	data[37], data[38], data[39], data[40] = 0x80, 0x98, 0x96, 0x80 // La2 = -10000000
+
+	grid, err := ParseMercatorGrid(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if grid.La1 != -30000000 || grid.La2 != -10000000 {
+		t.Errorf("got La1 %d, La2 %d; want -30000000, -10000000", grid.La1, grid.La2)
+	}
+}
+
 func TestParseMercatorGridTooShort(t *testing.T) {
 	data := make([]byte, 50) // Too short
 	_, err := ParseMercatorGrid(data)
