@@ -28,3 +28,14 @@ func LookupParameter(discipline, category, number int) (Parameter, bool) {
 	p, ok := wmoParameters[key]
 	return p, ok
 }
+
+// LookupCenterParameter is like LookupParameter, but it only looks up
+// parameters in the local-use ranges for data from NCEP (center 7), as
+// those are the only local parameters it knows.
+func LookupCenterParameter(center, discipline, category, number int) (Parameter, bool) {
+	local := func(v int) bool { return v >= 192 && v <= 254 }
+	if center != centerNCEP && (local(discipline) || local(category) || local(number)) {
+		return Parameter{}, false
+	}
+	return LookupParameter(discipline, category, number)
+}

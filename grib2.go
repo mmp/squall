@@ -463,6 +463,20 @@ func formatLevel(template fixedSurfaces, center int) string {
 	return tables.FormatLevel(s1.Type, s1.Value, s1.Missing, s2.Type, s2.Value, s2.Missing, center)
 }
 
+// ShortName returns the abbreviation for the field's parameter as wgrib2
+// gives it (e.g., "TMP"), or the empty string if it is unknown. Unlike
+// Parameter.ShortName, it takes the originating center into account for
+// parameters in the local-use ranges, which are only known for NCEP.
+func (g *GRIB2) ShortName() string {
+	center := 7 // NCEP
+	if g.message != nil && g.message.Section1 != nil {
+		center = int(g.message.Section1.OriginatingCenter)
+	}
+	p := g.Parameter
+	param, _ := tables.LookupCenterParameter(center, int(p.Discipline), int(p.Category), int(p.Number))
+	return param.ShortName
+}
+
 // String returns a human-readable summary of the field.
 func (g *GRIB2) String() string {
 	return fmt.Sprintf("GRIB2: %s from %s, %d points, ref time %s",

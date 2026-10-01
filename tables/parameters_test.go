@@ -35,3 +35,17 @@ func TestLookupParameter(t *testing.T) {
 		t.Error("out of range number should not be found")
 	}
 }
+
+func TestLookupCenterParameter(t *testing.T) {
+	// A WMO parameter is the same for any center.
+	if p, ok := LookupCenterParameter(54, 0, 0, 0); !ok || p.ShortName != "TMP" {
+		t.Errorf("CMC 0.0.0: got %+v, %v", p, ok)
+	}
+	// Local parameters are only known for NCEP.
+	if p, ok := LookupCenterParameter(7, 0, 1, 193); !ok || p.ShortName != "CFRZR" {
+		t.Errorf("NCEP 0.1.193: got %+v, %v", p, ok)
+	}
+	if p, ok := LookupCenterParameter(54, 0, 1, 193); ok {
+		t.Errorf("CMC 0.1.193: got %+v, want not found", p)
+	}
+}
