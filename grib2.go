@@ -118,6 +118,8 @@ type gridKey struct {
 	projectionCenter   uint8
 	orientation        uint32
 	lo1Unsigned        uint32 // PolarStereographic uses unsigned Lo1
+	basicAngle         uint32 // LatLon angle units
+	subdivisions       uint32
 }
 
 // createGridKey creates a unique key for a grid based on all coordinate-relevant parameters.
@@ -138,6 +140,7 @@ func createGridKey(msg *Message) (gridKey, bool) {
 		k.la2, k.lo2 = g.La2, g.Lo2
 		k.di, k.dj = g.Di, g.Dj
 		k.scanningMode = g.ScanningMode
+		k.basicAngle, k.subdivisions = g.BasicAngle, g.Subdivisions
 	case *grid.LambertConformalGrid:
 		k.nx, k.ny = g.Nx, g.Ny
 		k.la1, k.lo1 = g.La1, g.Lo1

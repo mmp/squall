@@ -7,18 +7,18 @@ import (
 
 func TestLatLonGridCoordinates(t *testing.T) {
 	// Create a simple 3x3 grid
-	// 90°N to 88°N, 0°E to 2°E, 1° spacing
+	// 90°N to 88°N, 0°E to 2°E, 1° spacing (angles in microdegrees)
 	// Scanning mode 0x00: +i (west to east), -j (north to south)
 	grid := &LatLonGrid{
 		Ni:           3,
 		Nj:           3,
-		La1:          90000, // 90°N
-		Lo1:          0,     // 0°E
-		La2:          88000, // 88°N
-		Lo2:          2000,  // 2°E
-		Di:           1000,  // 1° longitude
-		Dj:           1000,  // 1° latitude
-		ScanningMode: 0x00,  // Standard: +i, -j, consecutive
+		La1:          90000000, // 90°N
+		Lo1:          0,        // 0°E
+		La2:          88000000, // 88°N
+		Lo2:          2000000,  // 2°E
+		Di:           1000000,  // 1° longitude
+		Dj:           1000000,  // 1° latitude
+		ScanningMode: 0x00,     // Standard: +i, -j, consecutive
 	}
 
 	lats := grid.Latitudes()
@@ -60,13 +60,13 @@ func TestLatLonGridCoordinatesReversedI(t *testing.T) {
 	grid := &LatLonGrid{
 		Ni:           3,
 		Nj:           2,
-		La1:          10000, // 10°N
-		Lo1:          2000,  // 2°E (starting from east)
-		La2:          9000,  // 9°N
-		Lo2:          0,     // 0°E (ending at west)
-		Di:           1000,  // 1° longitude
-		Dj:           1000,  // 1° latitude
-		ScanningMode: 0x80,  // -i, -j, consecutive
+		La1:          10000000, // 10°N
+		Lo1:          2000000,  // 2°E (starting from east)
+		La2:          9000000,  // 9°N
+		Lo2:          0,        // 0°E (ending at west)
+		Di:           1000000,  // 1° longitude
+		Dj:           1000000,  // 1° latitude
+		ScanningMode: 0x80,     // -i, -j, consecutive
 	}
 
 	lats := grid.Latitudes()
@@ -98,13 +98,13 @@ func TestLatLonGridCoordinatesReversedJ(t *testing.T) {
 	grid := &LatLonGrid{
 		Ni:           2,
 		Nj:           3,
-		La1:          -10000, // -10°N (10°S, starting south)
-		Lo1:          0,      // 0°E
-		La2:          -8000,  // -8°N (8°S, ending north)
-		Lo2:          1000,   // 1°E
-		Di:           1000,   // 1° longitude
-		Dj:           1000,   // 1° latitude
-		ScanningMode: 0x40,   // +i, +j, consecutive
+		La1:          -10000000, // -10°N (10°S, starting south)
+		Lo1:          0,         // 0°E
+		La2:          -8000000,  // -8°N (8°S, ending north)
+		Lo2:          1000000,   // 1°E
+		Di:           1000000,   // 1° longitude
+		Dj:           1000000,   // 1° latitude
+		ScanningMode: 0x40,      // +i, +j, consecutive
 	}
 
 	lats := grid.Latitudes()
@@ -138,12 +138,12 @@ func TestLatLonGridCoordinatesDateLine(t *testing.T) {
 	grid := &LatLonGrid{
 		Ni:           3,
 		Nj:           2,
-		La1:          0,      // 0°N
-		Lo1:          358000, // 358°E
-		La2:          -1000,  // 1°S
-		Lo2:          0,      // 0°E
-		Di:           1000,   // 1° longitude
-		Dj:           1000,   // 1° latitude
+		La1:          0,         // 0°N
+		Lo1:          358000000, // 358°E
+		La2:          -1000000,  // 1°S
+		Lo2:          0,         // 0°E
+		Di:           1000000,   // 1° longitude
+		Dj:           1000000,   // 1° latitude
 		ScanningMode: 0x00,
 	}
 
@@ -167,12 +167,12 @@ func TestLatLonGridCoordinatesNegativeLongitudes(t *testing.T) {
 	grid := &LatLonGrid{
 		Ni:           3,
 		Nj:           2,
-		La1:          0,      // 0°N
-		Lo1:          -10000, // -10°E (350°E)
-		La2:          -1000,  // 1°S
-		Lo2:          -8000,  // -8°E (352°E)
-		Di:           1000,   // 1° longitude
-		Dj:           1000,   // 1° latitude
+		La1:          0,         // 0°N
+		Lo1:          -10000000, // -10°E (350°E)
+		La2:          -1000000,  // 1°S
+		Lo2:          -8000000,  // -8°E (352°E)
+		Di:           1000000,   // 1° longitude
+		Dj:           1000000,   // 1° latitude
 		ScanningMode: 0x00,
 	}
 
@@ -197,12 +197,12 @@ func TestLatLonGridCoordinatesGlobalGrid(t *testing.T) {
 	grid := &LatLonGrid{
 		Ni:           144,
 		Nj:           73,
-		La1:          90000,  // 90°N
-		Lo1:          0,      // 0°E
-		La2:          -90000, // 90°S
-		Lo2:          357500, // 357.5°E
-		Di:           2500,   // 2.5° longitude
-		Dj:           2500,   // 2.5° latitude
+		La1:          90000000,  // 90°N
+		Lo1:          0,         // 0°E
+		La2:          -90000000, // 90°S
+		Lo2:          357500000, // 357.5°E
+		Di:           2500000,   // 2.5° longitude
+		Dj:           2500000,   // 2.5° latitude
 		ScanningMode: 0x00,
 	}
 
@@ -251,13 +251,13 @@ func TestLatLonGridCoordinatesNonConsecutive(t *testing.T) {
 	grid := &LatLonGrid{
 		Ni:           2,
 		Nj:           3,
-		La1:          10000, // 10°N
-		Lo1:          0,     // 0°E
-		La2:          8000,  // 8°N
-		Lo2:          1000,  // 1°E
-		Di:           1000,  // 1° longitude
-		Dj:           1000,  // 1° latitude
-		ScanningMode: 0x20,  // +i, -j, j consecutive
+		La1:          10000000, // 10°N
+		Lo1:          0,        // 0°E
+		La2:          8000000,  // 8°N
+		Lo2:          1000000,  // 1°E
+		Di:           1000000,  // 1° longitude
+		Dj:           1000000,  // 1° latitude
+		ScanningMode: 0x20,     // +i, -j, j consecutive
 	}
 
 	lats := grid.Latitudes()
@@ -321,12 +321,12 @@ func TestLatLonGridCoordinatesMethod(t *testing.T) {
 	grid := &LatLonGrid{
 		Ni:           2,
 		Nj:           2,
-		La1:          10000,
+		La1:          10000000,
 		Lo1:          0,
-		La2:          9000,
-		Lo2:          1000,
-		Di:           1000,
-		Dj:           1000,
+		La2:          9000000,
+		Lo2:          1000000,
+		Di:           1000000,
+		Dj:           1000000,
 		ScanningMode: 0x00,
 	}
 

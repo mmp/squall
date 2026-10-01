@@ -58,10 +58,10 @@ func makeCompleteGRIB2Message() []byte {
 	sec1[20] = 1
 	msg = append(msg, sec1...)
 
-	// Section 3: Grid Definition (86 bytes, Template 3.0)
-	sec3 := make([]byte, 86)
+	// Section 3: Grid Definition (72 bytes, Template 3.0)
+	sec3 := make([]byte, 72)
 	// Length
-	sec3[0], sec3[1], sec3[2], sec3[3] = 0x00, 0x00, 0x00, 0x56 // 86
+	sec3[0], sec3[1], sec3[2], sec3[3] = 0x00, 0x00, 0x00, 0x48 // 72
 	sec3[4] = 3                                                 // Section number
 	sec3[5] = 0                                                 // Source of grid definition
 	// Number of data points: 9 (3x3)
@@ -75,21 +75,21 @@ func makeCompleteGRIB2Message() []byte {
 	sec3[30], sec3[31], sec3[32], sec3[33] = 0x00, 0x00, 0x00, 0x03
 	// Nj: 3
 	sec3[34], sec3[35], sec3[36], sec3[37] = 0x00, 0x00, 0x00, 0x03
-	// Basic angle and subdivisions (8 bytes zeros)
-	// La1: 90000 millidegrees (90°N)
-	sec3[46], sec3[47], sec3[48], sec3[49] = 0x00, 0x01, 0x5F, 0x90
-	// Lo1: 0 millidegrees (0°E)
+	// Basic angle and subdivisions (8 bytes zeros): angles in microdegrees
+	// La1: 90000000 microdegrees (90°N)
+	sec3[46], sec3[47], sec3[48], sec3[49] = 0x05, 0x5D, 0x4A, 0x80
+	// Lo1: 0 microdegrees (0°E)
 	sec3[50], sec3[51], sec3[52], sec3[53] = 0x00, 0x00, 0x00, 0x00
 	// Resolution flags
 	sec3[54] = 0x00
-	// La2: 88000 millidegrees (88°N)
-	sec3[55], sec3[56], sec3[57], sec3[58] = 0x00, 0x01, 0x57, 0xC0
-	// Lo2: 2000 millidegrees (2°E)
-	sec3[59], sec3[60], sec3[61], sec3[62] = 0x00, 0x00, 0x07, 0xD0
-	// Di: 1000 millidegrees (1°)
-	sec3[63], sec3[64], sec3[65], sec3[66] = 0x00, 0x00, 0x03, 0xE8
-	// Dj: 1000 millidegrees (1°)
-	sec3[67], sec3[68], sec3[69], sec3[70] = 0x00, 0x00, 0x03, 0xE8
+	// La2: 88000000 microdegrees (88°N)
+	sec3[55], sec3[56], sec3[57], sec3[58] = 0x05, 0x3E, 0xC6, 0x00
+	// Lo2: 2000000 microdegrees (2°E)
+	sec3[59], sec3[60], sec3[61], sec3[62] = 0x00, 0x1E, 0x84, 0x80
+	// Di: 1000000 microdegrees (1°)
+	sec3[63], sec3[64], sec3[65], sec3[66] = 0x00, 0x0F, 0x42, 0x40
+	// Dj: 1000000 microdegrees (1°)
+	sec3[67], sec3[68], sec3[69], sec3[70] = 0x00, 0x0F, 0x42, 0x40
 	// Scanning mode: 0x00
 	sec3[71] = 0x00
 	msg = append(msg, sec3...)
@@ -373,9 +373,9 @@ func TestParseMessageInvalid(t *testing.T) {
 // reuseBitmap is true or has no bitmap section of its own otherwise.
 func makeMultiFieldMessage(reuseBitmap bool) []byte {
 	base := makeCompleteGRIB2Message()
-	head := base[:123] // Sections 0, 1, and 3
-	sec4 := base[123:166]
-	sec5 := append([]byte(nil), base[166:188]...)
+	head := base[:109] // Sections 0, 1, and 3
+	sec4 := base[109:152]
+	sec5 := append([]byte(nil), base[152:174]...)
 	sec5[8] = 7 // 7 data values
 	sec5b := append([]byte(nil), sec5...)
 	sec5b[11], sec5b[12], sec5b[13], sec5b[14] = 0x42, 0xC8, 0x00, 0x00 // reference value 100
